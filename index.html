@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="meta.title">The Gold Desk — automated XAU/USD system for MetaTrader 5</title>
+<meta name="description" data-i18n-attr="content|meta.desc" content="An automated gold trading system for MetaTrader 5, built on a swept, out-of-sample validated methodology with real historical spread cost included in every test.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0A0D12; --slate:#111823; --slate-2:#161E2A;
+  --rule:#212B39; --rule-soft:#1A2330;
+  --bone:#E9EBEF; --mist:#8D97A6; --dim:#68727F;
+  --brass:#C89544; --brass-dim:#8C6A34; --crimson:#C0564B;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --ar:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
+  --pad:clamp(20px,5vw,64px); --maxw:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ink);color:var(--bone);
+  font-family:var(--sans);font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:linear-gradient(180deg,rgba(200,149,68,.05),transparent 340px),
+             radial-gradient(900px 420px at 78% -6%,rgba(200,149,68,.06),transparent 70%)}
+.wrap{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto;padding:0 var(--pad)}
+a{color:inherit}
+::selection{background:rgba(200,149,68,.28)}
+:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:2px}
+
+/* ---------- ARABIC / RTL ---------- */
+html[lang="ar"] body{font-family:var(--ar);line-height:1.85;font-size:16.5px}
+html[lang="ar"] h1,html[lang="ar"] h2,html[lang="ar"] h3,html[lang="ar"] h4{
+  font-family:var(--ar);font-weight:600;letter-spacing:normal}
+html[lang="ar"] h1{line-height:1.42}
+html[lang="ar"] h2{line-height:1.44}
+html[lang="ar"] h1 em{font-style:normal}
+html[lang="ar"] [class]{letter-spacing:normal}
+html[lang="ar"] .eyebrow,html[lang="ar"] .rec .no,html[lang="ar"] .rec .nm,
+html[lang="ar"] .tag,html[lang="ar"] .plate-hd,html[lang="ar"] .spec dt,
+html[lang="ar"] .spec dd,html[lang="ar"] .stat .k,html[lang="ar"] .price-hd .k,
+html[lang="ar"] .amount .per,html[lang="ar"] .chart-foot,html[lang="ar"] .readout,
+html[lang="ar"] .split-viz h4,html[lang="ar"] .half .h-k,html[lang="ar"] .ruler,
+html[lang="ar"] .risk h3,html[lang="ar"] .field label,html[lang="ar"] .form-note,
+html[lang="ar"] .hero-note,html[lang="ar"] .price-cta p,html[lang="ar"] .foot-in p,
+html[lang="ar"] .btn,html[lang="ar"] .bar nav a,html[lang="ar"] .step .n{
+  font-family:var(--ar);letter-spacing:normal}
+html[lang="ar"] .stat .v,html[lang="ar"] .amount .fig{font-family:var(--mono)}
+html[lang="ar"] .stat .v .unit{font-family:var(--ar)}
+html[lang="ar"] .lang-btn{font-family:var(--mono)}
+html[lang="ar"] .qa .a strong,html[lang="ar"] .risk strong{font-weight:700}
+
+/* ---------- masthead ---------- */
+.bar{position:sticky;top:0;z-index:40;background:rgba(10,13,18,.86);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--rule-soft)}
+.bar-in{display:flex;align-items:center;gap:20px;height:62px}
+.mark{display:flex;align-items:baseline;gap:10px;text-decoration:none;margin-inline-end:auto}
+.mark b{font-family:var(--serif);font-weight:700;font-size:19px;letter-spacing:-.01em}
+.mark span{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--brass);
+  border:1px solid var(--brass-dim);border-radius:2px;padding:2px 6px}
+.bar nav{display:flex;gap:24px}
+.bar nav a{font-family:var(--mono);font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--mist);text-decoration:none;transition:color .15s}
+.bar nav a:hover{color:var(--bone)}
+.lang{display:flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden;flex:none}
+.lang-btn{font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:7px 11px;
+  background:transparent;color:var(--mist);border:0;cursor:pointer;transition:background .15s,color .15s}
+.lang-btn + .lang-btn{border-inline-start:1px solid var(--rule)}
+.lang-btn:hover{color:var(--bone)}
+.lang-btn[aria-pressed="true"]{background:var(--brass);color:#150F04;font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  font-family:var(--mono);font-size:12px;letter-spacing:.09em;text-transform:uppercase;
+  padding:11px 20px;border-radius:3px;text-decoration:none;cursor:pointer;
+  border:1px solid var(--brass);background:var(--brass);color:#150F04;font-weight:600;
+  transition:background .15s,border-color .15s,transform .1s}
+.btn:hover{background:#D5A253;border-color:#D5A253}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:transparent;color:var(--bone);border-color:var(--rule)}
+.btn.ghost:hover{border-color:var(--mist);background:rgba(255,255,255,.03)}
+@media (max-width:980px){.bar nav{display:none}}
+@media (max-width:420px){.bar-cta{display:none}}
+
+/* ---------- section furniture ---------- */
+.sec{padding:clamp(60px,8vw,104px) 0}
+.sec + .sec{border-top:1px solid var(--rule-soft)}
+.rec{display:flex;align-items:center;gap:14px;margin-bottom:34px}
+.rec .no{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--brass);white-space:nowrap}
+.rec .nm{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--mist);
+  text-transform:uppercase;white-space:nowrap}
+.rec .ln{flex:1;height:1px;background:var(--rule)}
+h2{font-family:var(--serif);font-weight:600;letter-spacing:-.018em;line-height:1.14;
+  font-size:clamp(30px,4.1vw,46px);margin:0 0 18px;max-width:24ch}
+.lede{font-size:clamp(16.5px,1.6vw,18.5px);color:var(--mist);max-width:64ch;margin:0}
+
+/* ---------- hero ---------- */
+.hero{padding:clamp(56px,9vw,108px) 0 clamp(52px,7vw,84px)}
+.hero-grid{display:grid;grid-template-columns:1.35fr .95fr;gap:clamp(32px,5vw,72px);align-items:start}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--brass);margin:0 0 26px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.eyebrow i{width:5px;height:5px;background:var(--brass);border-radius:50%;display:inline-block;font-style:normal}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(38px,6.2vw,70px);
+  line-height:1.04;letter-spacing:-.028em;margin:0 0 24px;max-width:16ch}
+h1 em{font-style:italic;color:var(--brass);font-weight:400}
+.hero p.sub{font-size:clamp(17px,1.75vw,19.5px);color:var(--mist);max-width:54ch;margin:0 0 34px}
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:22px}
+.hero-note{font-family:var(--mono);font-size:12px;color:var(--dim);margin:0}
+.plate{border:1px solid var(--rule);border-radius:3px;background:var(--slate);overflow:hidden}
+.plate-hd{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:12px 16px;border-bottom:1px solid var(--rule);background:var(--slate-2);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mist)}
+.plate-hd b{color:var(--brass);font-weight:500}
+.spec{display:flex;justify-content:space-between;gap:18px;padding:11px 16px;border-bottom:1px solid var(--rule-soft)}
+.spec:last-child{border-bottom:0}
+.spec dt{font-family:var(--mono);font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);margin:0}
+.spec dd{font-family:var(--mono);font-size:13px;margin:0;text-align:end;color:var(--bone);
+  font-variant-numeric:tabular-nums;unicode-bidi:isolate}
+.spec dd.on{color:var(--brass)}
+@media (max-width:900px){.hero-grid{grid-template-columns:1fr}}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);
+  border-radius:3px;background:var(--slate)}
+.stat{padding:26px 24px;border-inline-end:1px solid var(--rule-soft)}
+.stat:last-child{border-inline-end:0}
+.stat .k{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--dim);margin:0 0 12px}
+.stat .v{font-family:var(--mono);font-weight:500;font-size:clamp(26px,3.2vw,36px);line-height:1;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:0 0 10px;unicode-bidi:isolate}
+.stat .v.warn{color:var(--crimson)}
+.stat .v .unit{font-size:.45em;letter-spacing:.12em;color:var(--mist)}
+.stat .d{font-size:13.5px;color:var(--mist);margin:0;line-height:1.5}
+html[lang="ar"] .stat .d{line-height:1.75}
+@media (max-width:860px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .stat{border-bottom:1px solid var(--rule-soft)}
+  .stat:nth-child(2n){border-inline-end:0}
+  .stat:nth-child(n+3){border-bottom:0}}
+@media (max-width:480px){
+  .stats{grid-template-columns:1fr}
+  .stat{border-inline-end:0;border-bottom:1px solid var(--rule-soft)}
+  .stat:last-child{border-bottom:0}}
+.stat-foot{margin:16px 0 0;font-size:14px;color:var(--dim);max-width:80ch}
+
+/* ---------- chart ---------- */
+.chartwrap{margin-top:52px;border:1px solid var(--rule);border-radius:3px;background:var(--slate);overflow:hidden}
+.chart-hd{display:flex;flex-wrap:wrap;gap:14px 26px;justify-content:space-between;
+  align-items:flex-end;padding:20px 22px;border-bottom:1px solid var(--rule)}
+.chart-hd h3{font-family:var(--serif);font-size:21px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.chart-hd p{margin:0;font-size:13.5px;color:var(--mist);max-width:58ch}
+.readout{font-family:var(--mono);font-size:12px;color:var(--mist);text-align:end;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.readout b{color:var(--brass);font-weight:500}
+.chart-body{padding:12px 10px 4px;direction:ltr}
+svg.chart{display:block;width:100%;height:auto;touch-action:pan-y}
+.gx{stroke:#1B2431;stroke-width:1}
+.gy,.gx-lab{fill:#5C6674;font-family:var(--mono);font-size:11px;letter-spacing:.06em}
+.axis{stroke:var(--rule);stroke-width:1}
+.curve{fill:none;stroke:var(--brass);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.fill{fill:url(#g1)}
+.split{stroke:#4A5768;stroke-width:1;stroke-dasharray:3 4}
+.zone-lab{fill:#7B8593;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase}
+html[lang="ar"] .zone-lab,html[lang="ar"] .base-lab,html[lang="ar"] .dd-lab,
+html[lang="ar"] .gx-lab{font-family:var(--ar);letter-spacing:normal}
+.dd-line{stroke:var(--crimson);stroke-width:1;stroke-dasharray:2 3}
+.dd-lab{fill:var(--crimson);font-family:var(--mono);font-size:11px;letter-spacing:.06em}
+.dd-dot{fill:var(--crimson)}
+.base-lab{fill:#7B8593;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em}
+.cross{stroke:#6F7B8B;stroke-width:1;opacity:0}
+.cross-dot{fill:var(--brass);stroke:var(--slate);stroke-width:2;opacity:0}
+.chart-foot{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:center;padding:14px 22px;
+  border-top:1px solid var(--rule);background:var(--slate-2);
+  font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+.key{display:flex;align-items:center;gap:8px}
+.key i{width:14px;height:0;border-top:2px solid var(--brass);display:inline-block}
+.key i.dash{border-top:1px dashed var(--crimson)}
+.chart-caption{margin:16px 0 0;font-size:14px;color:var(--dim);max-width:82ch}
+
+/* ---------- methodology ---------- */
+.meth-intro{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(24px,5vw,64px);
+  align-items:end;margin-bottom:48px}
+.meth-intro p{margin:0;color:var(--mist);font-size:16.5px}
+.meth-intro p strong{color:var(--bone);font-weight:500}
+@media (max-width:860px){.meth-intro{grid-template-columns:1fr;align-items:start}}
+.meth{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);
+  border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.card{background:var(--slate);padding:30px clamp(22px,2.6vw,32px)}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--brass);border:1px solid var(--brass-dim);
+  border-radius:2px;padding:3px 8px;margin-bottom:18px}
+.card h3{font-family:var(--serif);font-size:23px;font-weight:600;letter-spacing:-.012em;
+  margin:0 0 12px;line-height:1.2}
+html[lang="ar"] .card h3{line-height:1.5;font-size:21px}
+.card p{margin:0 0 12px;color:var(--mist);font-size:15.5px}
+.card p:last-child{margin-bottom:0}
+.card p em{color:var(--bone);font-style:normal;font-weight:500}
+@media (max-width:760px){.meth{grid-template-columns:1fr}}
+.split-viz{margin-top:44px;border:1px solid var(--rule);border-radius:3px;background:var(--slate);
+  padding:26px clamp(20px,2.6vw,30px)}
+.split-viz h4{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--mist);margin:0 0 20px;font-weight:500}
+.bar-split{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.half{border:1px solid var(--rule);border-radius:2px;padding:16px 18px;background:var(--slate-2)}
+.half.oos{border-color:var(--brass-dim);background:rgba(200,149,68,.06)}
+.half .h-k{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--dim);margin:0 0 8px}
+.half.oos .h-k{color:var(--brass)}
+.half .h-t{font-size:15px;margin:0;color:var(--bone);font-weight:500}
+.half .h-d{font-size:13.5px;margin:6px 0 0;color:var(--mist)}
+.ruler{display:flex;justify-content:space-between;margin-top:12px;font-family:var(--mono);
+  font-size:10.5px;color:#4F5966;letter-spacing:.1em}
+@media (max-width:640px){.bar-split{grid-template-columns:1fr}}
+
+/* ---------- how it works ---------- */
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);
+  border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.step{background:var(--slate);padding:28px clamp(20px,2.2vw,26px)}
+.step .n{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--brass);margin:0 0 16px}
+.step h3{font-family:var(--sans);font-size:16.5px;font-weight:600;margin:0 0 10px;letter-spacing:-.005em}
+html[lang="ar"] .step h3{font-family:var(--ar)}
+.step p{margin:0;font-size:14.5px;color:var(--mist)}
+.step code{font-family:var(--mono);font-size:13px;color:var(--bone);
+  background:rgba(255,255,255,.05);padding:1px 5px;border-radius:2px;unicode-bidi:isolate}
+@media (max-width:940px){.flow{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.flow{grid-template-columns:1fr}}
+.flow-foot{margin:20px 0 0;font-size:16px;color:var(--bone)}
+.flow-foot span{color:var(--mist)}
+
+/* ---------- pricing ---------- */
+.price-grid{display:grid;grid-template-columns:.95fr 1.05fr;gap:clamp(26px,4vw,54px);align-items:start}
+@media (max-width:900px){.price-grid{grid-template-columns:1fr}}
+.price-card{border:1px solid var(--rule);border-radius:3px;background:var(--slate);overflow:hidden}
+.price-hd{padding:26px clamp(22px,2.6vw,30px);border-bottom:1px solid var(--rule)}
+.price-hd .k{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--brass);margin:0 0 14px}
+.amount{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.amount .fig{font-family:var(--mono);font-weight:600;font-size:clamp(42px,6vw,58px);line-height:1;
+  letter-spacing:-.03em;font-variant-numeric:tabular-nums;unicode-bidi:isolate}
+.amount .per{font-family:var(--mono);font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mist)}
+.price-hd .sub{margin:0;font-size:14.5px;color:var(--mist)}
+.incl{list-style:none;margin:0;padding:22px clamp(22px,2.6vw,30px)}
+.incl li{display:flex;gap:12px;padding:9px 0;font-size:15px;color:var(--bone);
+  border-bottom:1px solid var(--rule-soft)}
+.incl li:last-child{border-bottom:0}
+.incl li::before{content:"—";color:var(--brass);font-family:var(--mono);flex:none}
+.price-cta{padding:0 clamp(22px,2.6vw,30px) 26px}
+.price-cta .btn{width:100%}
+.price-cta p{margin:12px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--dim);text-align:center}
+.price-copy h3{font-family:var(--serif);font-size:26px;font-weight:600;margin:0 0 16px;letter-spacing:-.015em}
+html[lang="ar"] .price-copy h3{line-height:1.5;font-size:23px}
+.price-copy p{color:var(--mist);margin:0 0 16px;font-size:16px}
+.price-copy p strong{color:var(--bone);font-weight:500}
+.price-copy p:last-child{margin-bottom:0}
+
+/* ---------- payment ---------- */
+.pay{margin-top:44px;border:1px solid var(--rule);border-radius:3px;background:var(--slate);
+  padding:28px clamp(20px,2.6vw,32px)}
+.pay h4{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--mist);margin:0 0 24px;font-weight:500}
+html[lang="ar"] .pay h4{font-family:var(--ar);letter-spacing:normal}
+.pay-steps{list-style:none;margin:0 0 26px;padding:0;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:26px}
+.pay-steps li{display:flex;gap:12px;align-items:flex-start}
+.pn{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--brass);
+  padding-top:4px;flex:none}
+.pt{margin:0 0 5px;font-size:15px;font-weight:600;color:var(--bone);line-height:1.35}
+html[lang="ar"] .pt{line-height:1.5}
+.pd{margin:0;font-size:14px;color:var(--mist)}
+@media (max-width:840px){.pay-steps{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.pay-steps{grid-template-columns:1fr}}
+.nets{display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  padding-top:22px;border-top:1px solid var(--rule-soft)}
+.net-lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--dim);margin-inline-end:6px}
+html[lang="ar"] .net-lab{font-family:var(--ar);letter-spacing:normal}
+.net{font-family:var(--mono);font-size:11.5px;border:1px solid var(--rule);border-radius:2px;
+  padding:5px 10px;color:var(--bone);unicode-bidi:isolate}
+.addrs{margin-top:20px}
+.addrs h5{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--dim);margin:0 0 10px;font-weight:500}
+html[lang="ar"] .addrs h5{font-family:var(--ar);letter-spacing:normal}
+.addr{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;
+  border:1px solid var(--rule);border-radius:2px;padding:10px 12px;margin-bottom:8px;background:var(--ink)}
+.addr .an{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--brass);flex:none}
+.addr code{font-family:var(--mono);font-size:12px;color:var(--bone);word-break:break-all;
+  direction:ltr;unicode-bidi:isolate;flex:1;min-width:180px}
+.copy-btn{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  background:transparent;border:1px solid var(--rule);color:var(--mist);border-radius:2px;
+  padding:6px 12px;cursor:pointer;flex:none;transition:color .15s,border-color .15s}
+.copy-btn:hover{color:var(--bone);border-color:var(--mist)}
+.pay-note{margin:22px 0 0;font-size:14.5px;line-height:1.7;color:#C7CDD7;
+  border-inline-start:2px solid var(--brass-dim);padding-inline-start:14px}
+html[lang="ar"] .pay-note{line-height:1.9}
+.field select{width:100%;background:var(--ink);border:1px solid var(--rule);border-radius:3px;
+  color:var(--bone);font-family:inherit;font-size:15.5px;padding:12px 14px}
+.field select:focus{border-color:var(--brass);outline:none}
+.hp{position:absolute;left:-9999px;opacity:0;height:0;width:0}
+
+/* ---------- faq ---------- */
+.faq{border-top:1px solid var(--rule);margin-top:36px}
+.qa{border-bottom:1px solid var(--rule);padding:28px 0;display:grid;
+  grid-template-columns:.9fr 1.1fr;gap:clamp(20px,4vw,56px)}
+.qa h3{font-family:var(--serif);font-size:clamp(20px,2.3vw,24px);font-weight:600;margin:0;
+  letter-spacing:-.012em;line-height:1.25}
+html[lang="ar"] .qa h3{line-height:1.5}
+.qa .a{margin:0;color:var(--mist);font-size:15.5px}
+.qa .a strong{color:var(--bone);font-weight:600}
+.qa .a + .a{margin-top:12px}
+@media (max-width:820px){.qa{grid-template-columns:1fr;gap:12px}}
+
+/* ---------- risk ---------- */
+.risk{border:1px solid var(--rule);border-inline-start:3px solid var(--brass);border-radius:3px;
+  background:var(--slate);padding:clamp(24px,3.4vw,38px)}
+.risk h3{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--brass);margin:0 0 22px;font-weight:600}
+.risk p{font-size:15.5px;line-height:1.68;color:#C7CDD7;margin:0 0 16px;max-width:94ch}
+html[lang="ar"] .risk p{line-height:1.95;font-size:16px}
+.risk p:last-child{margin-bottom:0}
+.risk strong{color:var(--bone);font-weight:600}
+
+/* ---------- contact ---------- */
+.cta{border:1px solid var(--rule);border-radius:3px;background:var(--slate);overflow:hidden}
+.cta-in{display:grid;grid-template-columns:1fr 1fr;gap:clamp(26px,4vw,56px);padding:clamp(28px,4vw,48px)}
+@media (max-width:860px){.cta-in{grid-template-columns:1fr}}
+.cta h2{margin-bottom:14px}
+.cta .lede{font-size:16.5px}
+.field{margin-bottom:16px}
+.field label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--mist);margin-bottom:8px}
+.field label .opt{text-transform:none;letter-spacing:0;color:var(--dim)}
+.field input,.field textarea{width:100%;background:var(--ink);border:1px solid var(--rule);
+  border-radius:3px;color:var(--bone);font-family:inherit;font-size:15.5px;padding:12px 14px;
+  transition:border-color .15s}
+.field textarea{resize:vertical;min-height:96px;line-height:1.55}
+.field input:focus,.field textarea:focus{border-color:var(--brass);outline:none}
+.field input::placeholder,.field textarea::placeholder{color:#4E5866}
+.form-foot{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:20px}
+.form-foot .btn{flex:none}
+.form-note{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+.form-note a{color:var(--brass);text-decoration:none;border-bottom:1px solid var(--brass-dim);
+  unicode-bidi:isolate}
+.msg{margin:16px 0 0;font-size:14.5px;color:var(--brass);display:none}
+.msg.show{display:block}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--rule-soft);padding:38px 0 56px;color:var(--dim)}
+.foot-in{display:flex;flex-wrap:wrap;gap:18px 32px;justify-content:space-between;align-items:baseline}
+.foot-in p{margin:0;font-family:var(--mono);font-size:11.5px;letter-spacing:.06em}
+.foot-in .disc{max-width:66ch;font-family:var(--sans);font-size:13.5px;letter-spacing:0;line-height:1.6}
+html[lang="ar"] .foot-in .disc{font-family:var(--ar);line-height:1.85}
+
+/* ---------- motion ---------- */
+@keyframes draw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:no-preference){
+  .curve{stroke-dasharray:var(--len);animation:draw 1900ms cubic-bezier(.24,.72,.28,1) 220ms backwards}
+  .fill{animation:fade 900ms ease 1500ms backwards}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap bar-in">
+    <a class="mark" href="#top"><b>The Gold Desk</b><span>MT5</span></a>
+    <nav>
+      <a href="#method" data-i18n="nav.method">Method</a>
+      <a href="#how" data-i18n="nav.how">How it works</a>
+      <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
+      <a href="#faq" data-i18n="nav.faq">FAQ</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language / اللغة">
+      <button type="button" class="lang-btn" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" class="lang-btn" data-lang="ar" aria-pressed="false">عربي</button>
+    </div>
+    <a class="btn bar-cta" href="#contact" data-i18n="nav.cta">Request access</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="wrap hero">
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow" data-i18n="hero.eyebrow"><i></i> XAU/USD <i></i> MetaTrader 5 <i></i> Early access</p>
+        <h1 data-i18n="hero.h1">The position is always working. <em>You don't have to be.</em></h1>
+        <p class="sub" data-i18n="hero.sub">The Gold Desk is an automated gold trading system for MetaTrader&nbsp;5. It reads the market, sizes the risk and manages the exit on its own — built on a methodology that was swept, split and tested against data it had never seen. Not a hunch someone wrote into code.</p>
+        <div class="actions">
+          <a class="btn" href="#contact" data-i18n="hero.cta1">Request early access</a>
+          <a class="btn ghost" href="#method" data-i18n="hero.cta2">Read the methodology</a>
+        </div>
+        <p class="hero-note" data-i18n="hero.note">No chart-watching. No manual entries. No signals to catch in time.</p>
+      </div>
+
+      <div class="plate">
+        <div class="plate-hd"><span data-i18n="spec.hd">System sheet</span><b data-i18n="spec.rev">Rev. 2026</b></div>
+        <dl style="margin:0">
+          <div class="spec"><dt data-i18n="spec.k1">Instrument</dt><dd data-i18n="spec.v1">XAU/USD</dd></div>
+          <div class="spec"><dt data-i18n="spec.k2">Platform</dt><dd data-i18n="spec.v2">MetaTrader 5</dd></div>
+          <div class="spec"><dt data-i18n="spec.k3">Signal</dt><dd data-i18n="spec.v3">Confirmed candle close</dd></div>
+          <div class="spec"><dt data-i18n="spec.k4">Delivery</dt><dd data-i18n="spec.v4">Authenticated webhook</dd></div>
+          <div class="spec"><dt data-i18n="spec.k5">Risk per trade</dt><dd data-i18n="spec.v5">2.0% of equity</dd></div>
+          <div class="spec"><dt data-i18n="spec.k6">Exit</dt><dd data-i18n="spec.v6">Stop / target, automatic</dd></div>
+          <div class="spec"><dt data-i18n="spec.k7">Your input</dt><dd data-i18n="spec.v7">Not required</dd></div>
+          <div class="spec"><dt data-i18n="spec.k8">Status</dt><dd class="on" data-i18n="spec.v8">Early access</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="performance">
+    <div class="rec"><span class="no">§ 01</span><span class="nm" data-i18n="rec.01">Backtested performance</span><span class="ln"></span></div>
+
+    <div class="stats">
+      <div class="stat">
+        <p class="k" data-i18n="stat.k1">Profit factor</p>
+        <p class="v">1.4&ndash;1.6</p>
+        <p class="d" data-i18n="stat.d1">Gross profit against gross loss, across the tested parameter range.</p>
+      </div>
+      <div class="stat">
+        <p class="k" data-i18n="stat.k2">Win rate</p>
+        <p class="v" data-i18n="stat.v2">~32%</p>
+        <p class="d" data-i18n="stat.d2">Low by design. Most trades are small losses; the edge lives in the winners.</p>
+      </div>
+      <div class="stat">
+        <p class="k" data-i18n="stat.k3">Max drawdown</p>
+        <p class="v warn">24.8%</p>
+        <p class="d" data-i18n="stat.d3">Deepest peak-to-trough fall in the test. Expect to sit through one.</p>
+      </div>
+      <div class="stat">
+        <p class="k" data-i18n="stat.k4">Test window</p>
+        <p class="v" data-i18n="stat.v4">365 <span class="unit">DAYS</span></p>
+        <p class="d" data-i18n="stat.d4">One full year of historical data, with real spread cost applied throughout.</p>
+      </div>
+    </div>
+    <p class="stat-foot" data-i18n="stat.foot">Figures are from historical simulation, not a live account. Hypothetical results have inherent limitations — the full risk disclosure is at the bottom of this page and is worth reading before anything else here.</p>
+
+    <div class="chartwrap">
+      <div class="chart-hd">
+        <div>
+          <h3 data-i18n="chart.h3">Growth index &mdash; 12-month backtest</h3>
+          <p data-i18n="chart.sub">Indexed to 100 at the start of the test window, on a log scale. This is an index, not a dollar figure, not an account statement and not a forecast.</p>
+        </div>
+        <div class="readout" data-i18n="chart.ro">Index <b id="ro-v">548</b> &nbsp;·&nbsp; Day <span id="ro-d">363</span></div>
+      </div>
+      <div class="chart-body">
+        <svg class="chart" viewBox="0 0 1040 430" role="img" data-i18n-attr="aria-label|chart.svgalt" aria-label="Line chart of a backtested growth index starting at 100 and ending near 548 over twelve months, with the out-of-sample validation split and the maximum drawdown marked.">
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#C89544" stop-opacity=".16"/>
+              <stop offset="100%" stop-color="#C89544" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <rect x="541.0" y="40" width="463.0" height="296" fill="#FFFFFF" fill-opacity=".016"/>
+          <line class="gx" x1="78.0" y1="311.0" x2="1004.0" y2="311.0"/><text class="gy" x="64.0" y="315.0" text-anchor="end">100</text><line class="gx" x1="78.0" y1="252.7" x2="1004.0" y2="252.7"/><text class="gy" x="64.0" y="256.7" text-anchor="end">150</text><line class="gx" x1="78.0" y1="211.4" x2="1004.0" y2="211.4"/><text class="gy" x="64.0" y="215.4" text-anchor="end">200</text><line class="gx" x1="78.0" y1="153.2" x2="1004.0" y2="153.2"/><text class="gy" x="64.0" y="157.2" text-anchor="end">300</text><line class="gx" x1="78.0" y1="95.0" x2="1004.0" y2="95.0"/><text class="gy" x="64.0" y="99.0" text-anchor="end">450</text><line class="gx" x1="78.0" y1="53.7" x2="1004.0" y2="53.7"/><text class="gy" x="64.0" y="57.7" text-anchor="end">600</text>
+          <line class="axis" x1="78" y1="336" x2="1004" y2="336"/>
+          <line class="axis" x1="78" y1="40" x2="78" y2="336"/>
+          <path class="fill" d="M 78.0 336.0 L 78.0 311.0 L 79.2 313.9 L 80.8 316.7 L 86.8 319.2 L 93.2 308.7 L 98.0 299.4 L 101.5 302.3 L 106.9 305.3 L 111.7 308.2 L 114.5 298.2 L 117.0 300.9 L 121.2 290.4 L 125.9 281.6 L 130.0 284.6 L 132.7 287.1 L 138.0 277.7 L 140.4 268.5 L 143.9 271.4 L 147.9 260.5 L 149.8 263.4 L 155.5 266.0 L 157.3 268.9 L 161.1 271.8 L 167.9 274.7 L 172.9 267.2 L 174.2 260.9 L 175.5 263.9 L 178.3 252.3 L 182.3 255.0 L 185.4 257.6 L 187.2 260.0 L 193.9 262.4 L 195.0 264.9 L 196.0 267.6 L 202.6 270.6 L 204.1 273.4 L 210.2 276.3 L 214.7 279.1 L 220.8 272.2 L 225.8 275.0 L 229.9 266.5 L 236.0 269.0 L 237.1 272.0 L 239.5 274.9 L 241.0 277.8 L 247.9 280.7 L 249.0 283.5 L 252.2 286.0 L 253.1 288.5 L 256.6 279.7 L 260.1 282.6 L 263.3 285.0 L 265.4 287.5 L 268.4 280.0 L 275.3 282.3 L 277.4 285.1 L 283.5 288.1 L 286.3 290.7 L 288.6 293.3 L 290.2 281.8 L 292.9 274.6 L 297.5 277.0 L 299.4 279.6 L 300.4 282.6 L 301.7 274.2 L 306.6 276.8 L 310.3 279.2 L 313.5 281.9 L 318.4 284.8 L 319.3 287.3 L 321.5 289.7 L 323.5 277.9 L 330.5 280.4 L 334.5 283.2 L 336.4 273.6 L 343.0 276.5 L 345.2 266.1 L 349.0 268.5 L 350.7 257.1 L 357.1 260.0 L 363.9 262.9 L 368.4 256.7 L 372.5 259.2 L 374.1 262.1 L 376.1 250.6 L 381.5 253.2 L 387.0 242.5 L 392.8 245.5 L 396.5 233.6 L 400.2 225.3 L 403.7 218.5 L 408.8 221.2 L 409.6 224.2 L 411.5 216.0 L 415.8 205.9 L 417.6 208.9 L 418.4 211.6 L 420.9 214.5 L 425.0 216.8 L 427.4 219.8 L 431.1 208.2 L 434.5 211.0 L 438.8 199.3 L 442.1 192.9 L 448.8 195.3 L 455.0 197.8 L 458.6 190.3 L 463.5 182.0 L 468.4 184.5 L 469.7 187.5 L 470.8 190.1 L 474.6 193.1 L 478.1 195.9 L 484.0 198.6 L 485.9 201.4 L 490.5 204.0 L 496.3 196.8 L 501.7 188.6 L 505.1 191.0 L 507.2 193.7 L 509.5 185.8 L 512.1 188.5 L 515.2 178.9 L 520.8 167.3 L 522.0 170.0 L 523.9 158.5 L 527.4 161.5 L 531.6 164.2 L 533.1 156.1 L 536.6 159.0 L 537.3 149.1 L 539.1 137.6 L 541.3 129.2 L 548.2 131.6 L 554.3 134.5 L 555.3 136.9 L 562.2 128.3 L 568.9 131.0 L 572.0 120.5 L 578.7 122.9 L 583.6 111.9 L 590.1 114.7 L 593.4 117.4 L 598.2 120.3 L 603.5 123.2 L 606.6 125.6 L 610.8 128.4 L 613.1 131.1 L 619.9 133.5 L 623.9 136.1 L 630.5 138.9 L 631.6 141.7 L 632.5 144.4 L 633.3 137.2 L 636.8 140.2 L 638.9 142.9 L 640.8 135.0 L 643.7 126.4 L 645.9 129.1 L 649.2 131.5 L 656.2 134.3 L 658.0 128.1 L 660.5 130.7 L 664.0 122.4 L 669.0 125.0 L 675.8 114.0 L 680.4 116.6 L 682.6 107.0 L 684.9 109.4 L 691.5 112.1 L 696.7 114.5 L 699.3 116.9 L 700.4 119.3 L 704.6 122.0 L 708.2 112.6 L 709.3 105.6 L 712.4 108.2 L 714.1 110.6 L 719.2 113.2 L 722.4 116.0 L 725.9 118.6 L 732.4 121.4 L 737.6 124.2 L 738.7 126.8 L 741.2 129.8 L 742.3 132.7 L 745.2 135.2 L 748.0 124.0 L 753.1 126.9 L 758.3 129.8 L 762.7 132.5 L 767.7 135.4 L 773.7 125.1 L 780.0 128.0 L 781.4 130.8 L 783.0 124.2 L 788.7 127.1 L 790.5 129.7 L 795.9 132.6 L 797.8 124.3 L 804.6 126.7 L 810.6 129.1 L 811.9 118.9 L 814.7 121.9 L 821.7 112.4 L 826.7 105.6 L 833.2 108.6 L 837.5 97.3 L 842.2 100.1 L 846.2 102.6 L 849.7 105.0 L 856.5 97.3 L 860.2 90.2 L 864.5 93.1 L 868.9 85.7 L 869.7 88.4 L 874.0 79.0 L 875.7 69.7 L 876.5 72.5 L 877.5 75.4 L 884.4 78.3 L 885.8 81.1 L 889.0 83.5 L 890.8 75.1 L 895.4 64.8 L 900.2 67.7 L 902.0 70.3 L 906.8 73.3 L 911.8 76.0 L 913.9 68.8 L 915.9 71.7 L 922.4 74.0 L 928.3 76.9 L 934.7 66.3 L 936.6 68.7 L 940.2 60.4 L 946.6 62.9 L 949.0 65.2 L 952.1 67.8 L 955.6 56.5 L 961.4 58.8 L 965.9 51.8 L 972.8 54.8 L 973.6 57.2 L 977.8 60.1 L 979.3 62.8 L 985.1 65.5 L 989.5 67.9 L 995.7 70.7 L 997.1 73.2 L 999.9 66.7 L 999.9 336.0 Z"/>
+          <path class="curve" d="M 78.0 311.0 L 79.2 313.9 L 80.8 316.7 L 86.8 319.2 L 93.2 308.7 L 98.0 299.4 L 101.5 302.3 L 106.9 305.3 L 111.7 308.2 L 114.5 298.2 L 117.0 300.9 L 121.2 290.4 L 125.9 281.6 L 130.0 284.6 L 132.7 287.1 L 138.0 277.7 L 140.4 268.5 L 143.9 271.4 L 147.9 260.5 L 149.8 263.4 L 155.5 266.0 L 157.3 268.9 L 161.1 271.8 L 167.9 274.7 L 172.9 267.2 L 174.2 260.9 L 175.5 263.9 L 178.3 252.3 L 182.3 255.0 L 185.4 257.6 L 187.2 260.0 L 193.9 262.4 L 195.0 264.9 L 196.0 267.6 L 202.6 270.6 L 204.1 273.4 L 210.2 276.3 L 214.7 279.1 L 220.8 272.2 L 225.8 275.0 L 229.9 266.5 L 236.0 269.0 L 237.1 272.0 L 239.5 274.9 L 241.0 277.8 L 247.9 280.7 L 249.0 283.5 L 252.2 286.0 L 253.1 288.5 L 256.6 279.7 L 260.1 282.6 L 263.3 285.0 L 265.4 287.5 L 268.4 280.0 L 275.3 282.3 L 277.4 285.1 L 283.5 288.1 L 286.3 290.7 L 288.6 293.3 L 290.2 281.8 L 292.9 274.6 L 297.5 277.0 L 299.4 279.6 L 300.4 282.6 L 301.7 274.2 L 306.6 276.8 L 310.3 279.2 L 313.5 281.9 L 318.4 284.8 L 319.3 287.3 L 321.5 289.7 L 323.5 277.9 L 330.5 280.4 L 334.5 283.2 L 336.4 273.6 L 343.0 276.5 L 345.2 266.1 L 349.0 268.5 L 350.7 257.1 L 357.1 260.0 L 363.9 262.9 L 368.4 256.7 L 372.5 259.2 L 374.1 262.1 L 376.1 250.6 L 381.5 253.2 L 387.0 242.5 L 392.8 245.5 L 396.5 233.6 L 400.2 225.3 L 403.7 218.5 L 408.8 221.2 L 409.6 224.2 L 411.5 216.0 L 415.8 205.9 L 417.6 208.9 L 418.4 211.6 L 420.9 214.5 L 425.0 216.8 L 427.4 219.8 L 431.1 208.2 L 434.5 211.0 L 438.8 199.3 L 442.1 192.9 L 448.8 195.3 L 455.0 197.8 L 458.6 190.3 L 463.5 182.0 L 468.4 184.5 L 469.7 187.5 L 470.8 190.1 L 474.6 193.1 L 478.1 195.9 L 484.0 198.6 L 485.9 201.4 L 490.5 204.0 L 496.3 196.8 L 501.7 188.6 L 505.1 191.0 L 507.2 193.7 L 509.5 185.8 L 512.1 188.5 L 515.2 178.9 L 520.8 167.3 L 522.0 170.0 L 523.9 158.5 L 527.4 161.5 L 531.6 164.2 L 533.1 156.1 L 536.6 159.0 L 537.3 149.1 L 539.1 137.6 L 541.3 129.2 L 548.2 131.6 L 554.3 134.5 L 555.3 136.9 L 562.2 128.3 L 568.9 131.0 L 572.0 120.5 L 578.7 122.9 L 583.6 111.9 L 590.1 114.7 L 593.4 117.4 L 598.2 120.3 L 603.5 123.2 L 606.6 125.6 L 610.8 128.4 L 613.1 131.1 L 619.9 133.5 L 623.9 136.1 L 630.5 138.9 L 631.6 141.7 L 632.5 144.4 L 633.3 137.2 L 636.8 140.2 L 638.9 142.9 L 640.8 135.0 L 643.7 126.4 L 645.9 129.1 L 649.2 131.5 L 656.2 134.3 L 658.0 128.1 L 660.5 130.7 L 664.0 122.4 L 669.0 125.0 L 675.8 114.0 L 680.4 116.6 L 682.6 107.0 L 684.9 109.4 L 691.5 112.1 L 696.7 114.5 L 699.3 116.9 L 700.4 119.3 L 704.6 122.0 L 708.2 112.6 L 709.3 105.6 L 712.4 108.2 L 714.1 110.6 L 719.2 113.2 L 722.4 116.0 L 725.9 118.6 L 732.4 121.4 L 737.6 124.2 L 738.7 126.8 L 741.2 129.8 L 742.3 132.7 L 745.2 135.2 L 748.0 124.0 L 753.1 126.9 L 758.3 129.8 L 762.7 132.5 L 767.7 135.4 L 773.7 125.1 L 780.0 128.0 L 781.4 130.8 L 783.0 124.2 L 788.7 127.1 L 790.5 129.7 L 795.9 132.6 L 797.8 124.3 L 804.6 126.7 L 810.6 129.1 L 811.9 118.9 L 814.7 121.9 L 821.7 112.4 L 826.7 105.6 L 833.2 108.6 L 837.5 97.3 L 842.2 100.1 L 846.2 102.6 L 849.7 105.0 L 856.5 97.3 L 860.2 90.2 L 864.5 93.1 L 868.9 85.7 L 869.7 88.4 L 874.0 79.0 L 875.7 69.7 L 876.5 72.5 L 877.5 75.4 L 884.4 78.3 L 885.8 81.1 L 889.0 83.5 L 890.8 75.1 L 895.4 64.8 L 900.2 67.7 L 902.0 70.3 L 906.8 73.3 L 911.8 76.0 L 913.9 68.8 L 915.9 71.7 L 922.4 74.0 L 928.3 76.9 L 934.7 66.3 L 936.6 68.7 L 940.2 60.4 L 946.6 62.9 L 949.0 65.2 L 952.1 67.8 L 955.6 56.5 L 961.4 58.8 L 965.9 51.8 L 972.8 54.8 L 973.6 57.2 L 977.8 60.1 L 979.3 62.8 L 985.1 65.5 L 989.5 67.9 L 995.7 70.7 L 997.1 73.2 L 999.9 66.7" style="--len:1596"/>
+          <line class="split" x1="541.0" y1="40" x2="541.0" y2="336"/>
+          <text class="zone-lab" x="529.0" y="28" text-anchor="end" data-i18n="chart.zoneL">Optimization window</text>
+          <text class="zone-lab" x="553.0" y="28" data-i18n="chart.zoneR">Validation &mdash; out of sample</text>
+          <line class="dd-line" x1="288.6" y1="252.3" x2="288.6" y2="293.3"/>
+          <line class="dd-line" x1="178.3" y1="252.3" x2="288.6" y2="252.3"/>
+          <circle class="dd-dot" cx="288.6" cy="293.3" r="3"/>
+          <text class="dd-lab" x="298.6" y="313.3" text-anchor="start" data-i18n="chart.dd">&minus;24.8% peak to trough</text>
+          <circle cx="78.0" cy="311.0" r="3" fill="#C89544" fill-opacity=".55"/>
+          <text class="base-lab" x="64" y="28" text-anchor="end" data-i18n="chart.axis">INDEX</text>
+          <text class="gx-lab" x="116.6" y="362.0" text-anchor="middle">01</text><text class="gx-lab" x="193.8" y="362.0" text-anchor="middle">02</text><text class="gx-lab" x="270.9" y="362.0" text-anchor="middle">03</text><text class="gx-lab" x="348.1" y="362.0" text-anchor="middle">04</text><text class="gx-lab" x="425.2" y="362.0" text-anchor="middle">05</text><text class="gx-lab" x="502.4" y="362.0" text-anchor="middle">06</text><text class="gx-lab" x="579.6" y="362.0" text-anchor="middle">07</text><text class="gx-lab" x="656.8" y="362.0" text-anchor="middle">08</text><text class="gx-lab" x="733.9" y="362.0" text-anchor="middle">09</text><text class="gx-lab" x="811.1" y="362.0" text-anchor="middle">10</text><text class="gx-lab" x="888.2" y="362.0" text-anchor="middle">11</text><text class="gx-lab" x="965.4" y="362.0" text-anchor="middle">12</text>
+          <text class="gx-lab" x="541" y="388" text-anchor="middle" data-i18n="chart.xaxis">MONTH OF TEST WINDOW</text>
+          <line class="cross" id="cross" x1="0" y1="40" x2="0" y2="336"/>
+          <circle class="cross-dot" id="crossdot" cx="0" cy="0" r="4.5"/>
+          <rect id="hit" x="78" y="40" width="926" height="296" fill="transparent"/>
+        </svg>
+      </div>
+      <div class="chart-foot">
+        <span class="key"><i></i> <span data-i18n="chart.key1">Growth index</span></span>
+        <span class="key"><i class="dash"></i> <span data-i18n="chart.key2">Max drawdown</span></span>
+        <span data-i18n="chart.key3">Log scale &mdash; equal height, equal percentage</span>
+        <span data-i18n="chart.key4">Real historical spread included</span>
+        <span data-i18n="chart.key5">Hypothetical &mdash; not a live account</span>
+      </div>
+    </div>
+    <p class="chart-caption" data-i18n="chart.caption">The drawdown and the out-of-sample split are drawn on the chart on purpose. A curve without its worst moment marked on it is a sales graphic, not a test result.</p>
+  </section>
+
+  <section class="wrap sec" id="method">
+    <div class="rec"><span class="no">§ 02</span><span class="nm" data-i18n="rec.02">Methodology</span><span class="ln"></span></div>
+    <div class="meth-intro">
+      <h2 data-i18n="meth.h2">Most retail trading bots are a hunch in code.</h2>
+      <p data-i18n="meth.intro">Someone notices a pattern, writes it up, runs one backtest on the same data that gave them the idea, and ships the screenshot. It looks extraordinary, because it was fitted to the exact year it was tested on. <strong>The Gold Desk was built the other way around</strong> — and the four steps below are the entire reason this page exists.</p>
+    </div>
+
+    <div class="meth">
+      <div class="card">
+        <span class="tag" data-i18n="meth.tag1">Sweep</span>
+        <h3 data-i18n="meth.h1">Hundreds of parameter combinations, not one lucky set</h3>
+        <p data-i18n="meth.p1a">Every setting the system exposes was swept across its plausible range and tested in combination — hundreds of variants, not the one that happened to look good on a chart.</p>
+        <p data-i18n="meth.p1b">The point isn't to crown the single highest-scoring set. It's to see the <em>shape</em> of the results. Performance that sits on a broad plateau, where neighbouring settings behave similarly, is a sign of something real. Performance that spikes at one exact combination and collapses on either side is a curve fit wearing a nice suit.</p>
+      </div>
+      <div class="card">
+        <span class="tag" data-i18n="meth.tag2">Out of sample</span>
+        <h3 data-i18n="meth.h2b">Tuned on one half of the year, proven on the half it never saw</h3>
+        <p data-i18n="meth.p2a">The year was cut in two. Parameters were chosen using the first half only. Then those parameters were frozen — <em>no further changes, no second look</em> — and run across the second half, which played no part in any tuning decision.</p>
+        <p data-i18n="meth.p2b">This is the test almost nothing survives, and it's the only one that answers the real question: does the edge exist outside the data it was found in?</p>
+      </div>
+      <div class="card">
+        <span class="tag" data-i18n="meth.tag3">Cost</span>
+        <h3 data-i18n="meth.h3b">Real historical spread in every test, not an idealized number</h3>
+        <p data-i18n="meth.p3a">Gold's spread widens at the rollover, around news, and at the thin end of the session — exactly when a lot of signals fire. A backtest run at a flat, friendly spread quietly deletes that cost.</p>
+        <p data-i18n="meth.p3b">Every result on this page charges the trade the <em>real historical spread</em> for that moment. Strategies that only work in a frictionless market don't make it out of testing.</p>
+      </div>
+      <div class="card">
+        <span class="tag" data-i18n="meth.tag4">Window</span>
+        <h3 data-i18n="meth.h4b">Hour by hour, day by day &mdash; where the edge actually is</h3>
+        <p data-i18n="meth.p4a">Results were broken down by hour of the day and by day of the week, rather than judged as one blended number. A system can look profitable overall while quietly losing money in specific sessions and being carried by others.</p>
+        <p data-i18n="meth.p4b">Windows with no demonstrable edge are <em>excluded from trading</em> rather than hoped over. Fewer trades, in the hours that earned their place.</p>
+      </div>
+    </div>
+
+    <div class="split-viz">
+      <h4 data-i18n="split.h4">How the year was split</h4>
+      <div class="bar-split">
+        <div class="half">
+          <p class="h-k" data-i18n="split.k1">Months 1&ndash;6</p>
+          <p class="h-t" data-i18n="split.t1">Optimization window</p>
+          <p class="h-d" data-i18n="split.d1">Parameters selected here. Every decision about how the system is configured was made using this data only.</p>
+        </div>
+        <div class="half oos">
+          <p class="h-k" data-i18n="split.k2">Months 7&ndash;12</p>
+          <p class="h-t" data-i18n="split.t2">Validation window &mdash; out of sample</p>
+          <p class="h-d" data-i18n="split.d2">Settings frozen, then run forward. The system had never seen this data when its parameters were chosen.</p>
+        </div>
+      </div>
+      <div class="ruler"><span data-i18n="split.r1">DAY 1</span><span data-i18n="split.r2">DAY 183</span><span data-i18n="split.r3">DAY 365</span></div>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="how">
+    <div class="rec"><span class="no">§ 03</span><span class="nm" data-i18n="rec.03">Execution</span><span class="ln"></span></div>
+    <h2 data-i18n="how.h2">Four steps, and none of them are yours.</h2>
+    <p class="lede" style="margin-bottom:44px" data-i18n="how.lede">From signal to closed trade, the sequence runs without you in it. This is the order it happens in, every time.</p>
+
+    <div class="flow">
+      <div class="step">
+        <p class="n">01</p>
+        <h3 data-i18n="how.t1">Signal on a confirmed close</h3>
+        <p data-i18n="how.d1">Conditions are evaluated only on candles that have actually closed. Nothing acts on a wick that's still moving, so a signal can't appear and then vanish.</p>
+      </div>
+      <div class="step">
+        <p class="n">02</p>
+        <h3 data-i18n="how.t2">Sent over a secure webhook</h3>
+        <p data-i18n="how.d2">The signal travels over an authenticated webhook to the bridge running against your MetaTrader&nbsp;5 terminal. No copying, no forwarding, no missed alerts.</p>
+      </div>
+      <div class="step">
+        <p class="n">03</p>
+        <h3 data-i18n="how.t3">Risk-sized entry</h3>
+        <p data-i18n="how.d3">Position size is calculated from your live account equity and the distance to the stop — <code>2%</code> of equity at risk per trade. Not a fixed lot that means something different at every balance.</p>
+      </div>
+      <div class="step">
+        <p class="n">04</p>
+        <h3 data-i18n="how.t4">Exit handles itself</h3>
+        <p data-i18n="how.d4">Stop and target are attached at entry. The trade closes at one or the other on its own, whether you're at your desk, asleep, or nowhere near a screen.</p>
+      </div>
+    </div>
+    <p class="flow-foot" data-i18n="how.foot">You don't place the trade. You don't size it. You don't close it. <span>Your job is to run the terminal and decide whether you're comfortable with the risk — the rest is the system's.</span></p>
+  </section>
+
+  <section class="wrap sec" id="pricing">
+    <div class="rec"><span class="no">§ 04</span><span class="nm" data-i18n="rec.04">Access</span><span class="ln"></span></div>
+    <div class="price-grid">
+      <div class="price-card">
+        <div class="price-hd">
+          <p class="k" data-i18n="price.k">Early access</p>
+          <div class="amount"><span class="fig">$399</span><span class="per" data-i18n="price.per">one time</span></div>
+          <p class="sub" data-i18n="price.sub">Single payment. No subscription, no profit share, no monthly licence.</p>
+        </div>
+        <ul class="incl">
+          <li><span data-i18n="price.i1">The system, configured for MetaTrader&nbsp;5</span></li>
+          <li><span data-i18n="price.i2">The validated parameter set behind the figures on this page</span></li>
+          <li><span data-i18n="price.i3">Setup documentation, start to finish</span></li>
+          <li><span data-i18n="price.i4">The full validation report &mdash; sweep, split and cost assumptions</span></li>
+          <li><span data-i18n="price.i5">Updates and refinements throughout early access</span></li>
+          <li><span data-i18n="price.i6">Direct access to me while you're getting it running</span></li>
+        </ul>
+        <div class="price-cta">
+          <a class="btn" href="#contact" data-i18n="price.cta">Request early access</a>
+          <p data-i18n="price.nopay">Paid in crypto &mdash; details issued per order</p>
+        </div>
+      </div>
+
+      <div class="price-copy">
+        <h3 data-i18n="price.h3">What you're buying is early, and I'd rather say so here than in an email later.</h3>
+        <p data-i18n="price.p1">The methodology is validated. The <strong>live track record is short</strong> — it has been confirmed working on a real account recently, and that's a different thing from years of audited results. Anyone selling you a decade of proof for a system built this year is selling you something else.</p>
+        <p data-i18n="price.p2">$399 is an early-access price, and it reflects exactly that trade: you're getting in before the live record is long, at a price that won't exist once it is. <strong>As the live track record grows, the price goes up.</strong> There's no deadline attached to that and no counter on this page — it simply moves when the evidence does.</p>
+        <p data-i18n="price.p3">If you'd rather wait and pay more for a longer record, that is a completely reasonable decision, and I'd tell you the same thing if you asked me directly.</p>
+      </div>
+    </div>
+
+    <div class="pay">
+      <h4 data-i18n="pay.h4">How payment works</h4>
+      <ol class="pay-steps">
+        <li><span class="pn">01</span><div>
+          <p class="pt" data-i18n="pay.t1">You request access</p>
+          <p class="pd" data-i18n="pay.d1">You send the form and I reply personally. I'm happy to get on a short call before you pay anything.</p></div></li>
+        <li><span class="pn">02</span><div>
+          <p class="pt" data-i18n="pay.t2">An invoice is issued to you</p>
+          <p class="pd" data-i18n="pay.d2">I send you a wallet address and an exact amount on the network you picked. The address is issued per order, so your payment is identifiable.</p></div></li>
+        <li><span class="pn">03</span><div>
+          <p class="pt" data-i18n="pay.t3">You send the payment</p>
+          <p class="pd" data-i18n="pay.d3">From your own wallet. Stablecoins are quoted at the $399 equivalent; network fees are yours.</p></div></li>
+        <li><span class="pn">04</span><div>
+          <p class="pt" data-i18n="pay.t4">Delivery</p>
+          <p class="pd" data-i18n="pay.d4">Once the transaction confirms on-chain you get the system, the parameter set, the documentation and the validation report, plus setup help.</p></div></li>
+      </ol>
+      <div class="nets">
+        <span class="net-lab" data-i18n="pay.nets">Networks accepted</span>
+        <span class="net">USDT &middot; TRC-20</span>
+        <span class="net">USDT &middot; ERC-20</span>
+        <span class="net">USDC &middot; Solana</span>
+        <span class="net">USDC &middot; Base</span>
+        <span class="net">BTC</span>
+        <span class="net">ETH</span>
+      </div>
+      <div class="addrs" id="addrs" hidden><h5 data-i18n="pay.addrH">Payment addresses</h5></div>
+      <p class="pay-note" data-i18n="pay.note">Crypto payments are irreversible &mdash; there is no chargeback and no intermediary to appeal to. That cuts both ways, and it's exactly why I'd rather you talk to me, and run the system on a demo account, before you send anything.</p>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="faq">
+    <div class="rec"><span class="no">§ 05</span><span class="nm" data-i18n="rec.05">Questions</span><span class="ln"></span></div>
+    <h2 data-i18n="faq.h2">The questions worth asking before you buy.</h2>
+
+    <div class="faq">
+      <div class="qa">
+        <h3 data-i18n="faq.q1">Is this guaranteed to make money?</h3>
+        <div>
+          <p class="a" data-i18n="faq.a1a"><strong>No.</strong> Nothing in trading is, and anyone who tells you otherwise is either lying or about to be wrong in public.</p>
+          <p class="a" data-i18n="faq.a1b">What the system has is a tested methodology and a defined risk model. It can lose. It will have losing weeks and losing months — the 24.8% drawdown in the test is not a rounding error, it's a real stretch of time where the account went backwards and the correct move was to keep running. Treat capital you put behind it as capital you can afford to lose.</p>
+        </div>
+      </div>
+      <div class="qa">
+        <h3 data-i18n="faq.q2">Has this traded real money?</h3>
+        <div>
+          <p class="a" data-i18n="faq.a2a"><strong>Yes &mdash; recently, and that's the honest limit of the claim.</strong> Live operation has been confirmed on a real account. What doesn't exist yet is a long real-money track record, and I'm not going to dress up a short one as a long one.</p>
+          <p class="a" data-i18n="faq.a2b">Everything on this page that carries a number comes from historical simulation, clearly labelled as such. The live record is being built now, in public, and it's the reason the price is what it is today.</p>
+        </div>
+      </div>
+      <div class="qa">
+        <h3 data-i18n="faq.q3">Do I need to watch it?</h3>
+        <div>
+          <p class="a" data-i18n="faq.a3a"><strong>No.</strong> That's the entire point of it. Signals fire on confirmed closes, entries are sized automatically, and exits are attached to the trade at the moment it opens.</p>
+          <p class="a" data-i18n="faq.a3b">You need MetaTrader&nbsp;5 running and connected — most people use a cheap VPS so it isn't tied to their own machine — and you need to check in on it the way you'd check any account. What you don't need to do is sit in front of a chart waiting to click.</p>
+        </div>
+      </div>
+      <div class="qa">
+        <h3 data-i18n="faq.q4">Why should I trust the backtest?</h3>
+        <div>
+          <p class="a" data-i18n="faq.a4a"><strong>You shouldn't &mdash; not blindly.</strong> A backtest is the easiest thing in this industry to fake, and most of the ones you've been shown were fitted to the exact data they were tested on.</p>
+          <p class="a" data-i18n="faq.a4b">That's precisely why this one was built the way it was: parameters chosen on one half of the year and frozen, then run on a half they'd never seen; real historical spread charged on every trade; hundreds of parameter combinations tested to check the result sits on a plateau rather than a spike. You get the full validation report with the system, and you're welcome to pull it apart before you run a live lot.</p>
+        </div>
+      </div>
+      <div class="qa">
+        <h3 data-i18n="faq.q6">Why is payment crypto only?</h3>
+        <div>
+          <p class="a" data-i18n="faq.a6a"><strong>Because card processors classify trading software as high-risk.</strong> Accounts in this category get frozen mid-business, sometimes with funds held for months, and I'd rather not build on top of that risk. Crypto settles directly, with no intermediary who can switch it off.</p>
+          <p class="a" data-i18n="faq.a6b">Being straight about the other side of it: it also means you're sending an irreversible payment with no chargeback rights. So do your diligence first — ask me anything, get on a call, run the system on a demo account for as long as you want. I'd rather lose a sale than have you send money you weren't sure about.</p>
+        </div>
+      </div>
+      <div class="qa">
+        <h3 data-i18n="faq.q5">What do I need to run it?</h3>
+        <div>
+          <p class="a" data-i18n="faq.a5a">A MetaTrader&nbsp;5 account with a broker that offers gold at a competitive spread, and a machine or VPS that stays online. Setup is documented step by step, and I'll help you through it during early access.</p>
+          <p class="a" data-i18n="faq.a5b">Start on a demo account for as long as you want. There's no argument from me about that — it's what I'd do.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="risk">
+    <div class="rec"><span class="no">§ 06</span><span class="nm" data-i18n="rec.06">Risk disclosure</span><span class="ln"></span></div>
+    <div class="risk">
+      <h3 data-i18n="risk.h3">Read this before you buy anything</h3>
+      <p data-i18n="risk.p1"><strong>Trading involves substantial risk of loss and is not suitable for every investor.</strong> Leveraged products such as spot gold, CFDs and futures can move against a position quickly and can result in losses that exceed your initial deposit with some brokers and account types. You should never trade with money you cannot afford to lose entirely.</p>
+      <p data-i18n="risk.p2"><strong>Backtested and simulated results are hypothetical and do not represent actual trading.</strong> Because the trades in a backtest were not actually executed, the results may under- or over-compensate for the impact of factors such as slippage, liquidity, order rejection, requotes, broker execution differences and changes in market conditions. Hypothetical performance is prepared with the benefit of hindsight. <strong>No representation is made that any account will or is likely to achieve profits or losses similar to those shown.</strong> Past performance, whether actual or simulated, is not indicative of future results.</p>
+      <p data-i18n="risk.p3"><strong>The Gold Desk is sold as software only.</strong> It is a tool that executes a defined set of rules on your own account, at your own broker, under your own control. Nothing on this page is investment advice, financial advice, a recommendation to trade any instrument, or an offer to manage money on your behalf.</p>
+      <p data-i18n="risk.p4"><strong>I am not a registered investment advisor, broker-dealer or financial planner</strong>, and no part of this page should be treated as personalised advice. You are responsible for your own trading decisions, for the suitability of this software for your circumstances, and for complying with the laws and regulations that apply where you live. Consider speaking with a licensed professional before putting capital at risk.</p>
+      <p data-i18n="risk.p5"><strong>No guarantee of profit is made or implied, anywhere on this page or in any communication.</strong> The system can and will produce losing trades, losing weeks and losing months. Purchase gives you a licence to use the software; it does not give you an expectation of income.</p>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="contact">
+    <div class="cta">
+      <div class="cta-in">
+        <div>
+          <div class="rec" style="margin-bottom:26px"><span class="no">§ 07</span><span class="nm" data-i18n="rec.07">Get in touch</span><span class="ln"></span></div>
+          <h2 data-i18n="cta.h2">Join the early-access list.</h2>
+          <p class="lede" data-i18n="cta.lede1">Leave your email and I'll come back to you personally with the validation report, what's involved in setup, and where the live record currently stands. No automated sequence, no drip campaign.</p>
+          <p class="lede" style="margin-top:16px;font-size:15px" data-i18n="cta.lede2">Checkout isn't open yet — payment is arranged directly once you've seen the detail and decided it's for you.</p>
+        </div>
+        <div>
+          <form id="waitlist" novalidate>
+            <div class="field">
+              <label for="email" data-i18n="cta.lblEmail">Email address</label>
+              <input id="email" name="email" type="email" autocomplete="email" data-i18n-attr="placeholder|cta.phEmail" placeholder="you@example.com" required>
+            </div>
+            <div class="field">
+              <label for="network" data-i18n="cta.lblNet">Preferred payment network</label>
+              <select id="network" name="network">
+                <option value="" data-i18n="cta.netAny">No preference</option>
+                <option value="USDT TRC-20">USDT &middot; TRC-20</option>
+                <option value="USDT ERC-20">USDT &middot; ERC-20</option>
+                <option value="USDC Solana">USDC &middot; Solana</option>
+                <option value="USDC Base">USDC &middot; Base</option>
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="note" data-i18n="cta.lblNote">Anything you want to ask <span class="opt">(optional)</span></label>
+              <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off">
+              <textarea id="note" name="message" data-i18n-attr="placeholder|cta.phNote" placeholder="Broker, account size you're considering, or whatever you want to know before you commit."></textarea>
+            </div>
+            <div class="form-foot">
+              <button class="btn" type="submit" data-i18n="cta.btn">Request early access</button>
+              <span class="form-note"><span data-i18n="cta.or">or email</span> <a href="mailto:bashketing@gmail.com">bashketing@gmail.com</a></span>
+            </div>
+            <p class="msg" id="msg"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <p data-i18n="foot.brand">THE GOLD DESK &nbsp;·&nbsp; XAU/USD &nbsp;·&nbsp; METATRADER 5</p>
+    <p class="disc" data-i18n="foot.disc">Software only. Not investment advice. Trading involves substantial risk of loss. Backtested results are hypothetical and do not guarantee future performance.</p>
+    <p>&copy; 2026</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ==========================================================
+     ===============  CONFIGURE THESE THREE  ==================
+     ==========================================================
+
+     1) Your real email address. Shown on the page and used as
+        the fallback if the form key below is left empty.
+     -------------------------------------------------------- */
+  var CONTACT_EMAIL = "bashketing@gmail.com";
+
+  /*  2) Web3Forms access key — get one free at web3forms.com
+        (enter your email, they mail you a key). Paste it here
+        and the form starts delivering to your inbox. Leave it
+        empty and the form falls back to opening a mail draft.
+     -------------------------------------------------------- */
+  var FORM_ACCESS_KEY = "7fd7525b-4386-4f73-899b-806410b66542";
+
+  /*  3) Wallet addresses. Any you fill in are shown publicly on
+        the page with a copy button. Any left empty are simply
+        not displayed — so you cannot accidentally publish a
+        placeholder address. Leaving them ALL empty (the default)
+        keeps payment details private and issued per order,
+        which is the safer way to run this.
+     -------------------------------------------------------- */
+  var CRYPTO = [
+    { label: "USDT · TRC-20",  address: "" },
+    { label: "USDT · ERC-20",  address: "" },
+    { label: "USDC · Solana",  address: "" },
+    { label: "USDC · Base",    address: "" },
+    { label: "BTC",            address: "" },
+    { label: "ETH",            address: "" }
+  ];
+  /* ======================  END CONFIG  ====================== */
+
+  var AR = {"meta.title":"ذا غولد ديسك — نظام آلي لتداول الذهب على ميتاتريدر 5","meta.desc":"نظام آلي لتداول الذهب على ميتاتريدر 5، مبني على منهجية خضعت لمسح شامل للمعايير وتحقّق خارج العينة، مع احتساب تكلفة السبريد التاريخية الحقيقية في كل اختبار.","nav.method":"المنهجية","nav.how":"آلية العمل","nav.pricing":"السعر","nav.faq":"الأسئلة","nav.cta":"اطلب الوصول","hero.eyebrow":"<i></i> XAU/USD <i></i> ميتاتريدر 5 <i></i> وصول مبكر","hero.h1":"المركز يعمل دائمًا. <em>أنت لست مضطرًا لذلك.</em>","hero.sub":"\"ذا غولد ديسك\" نظام تداول آلي للذهب يعمل على منصة ميتاتريدر&nbsp;5. يقرأ السوق، ويحدّد حجم المخاطرة، ويدير الخروج من الصفقة بنفسه — مبني على منهجية خضعت لمسح شامل للمعايير، وقُسّمت بياناتها، واختُبرت على فترة لم يسبق للنظام أن رآها. ليس مجرد حدس كُتب في صورة كود.","hero.cta1":"اطلب الوصول المبكر","hero.cta2":"اقرأ المنهجية","hero.note":"لا مراقبة للرسوم البيانية. لا إدخال يدوي للصفقات. لا إشارات تحتاج إلى اللحاق بها.","spec.hd":"بطاقة النظام","spec.rev":"إصدار 2026","spec.k1":"الأداة","spec.v1":"XAU/USD","spec.k2":"المنصة","spec.v2":"ميتاتريدر 5","spec.k3":"الإشارة","spec.v3":"إغلاق شمعة مؤكد","spec.k4":"التسليم","spec.v4":"ويب هوك موثّق","spec.k5":"المخاطرة لكل صفقة","spec.v5":"2.0% من صافي قيمة الحساب","spec.k6":"الخروج","spec.v6":"وقف الخسارة / الهدف، تلقائيًا","spec.k7":"تدخّلك","spec.v7":"غير مطلوب","spec.k8":"الحالة","spec.v8":"وصول مبكر","rec.01":"الأداء في الاختبار التاريخي","rec.02":"المنهجية","rec.03":"التنفيذ","rec.04":"الوصول","rec.05":"الأسئلة","rec.06":"إفصاح المخاطر","rec.07":"تواصل معي","stat.k1":"عامل الربح","stat.d1":"إجمالي الأرباح مقابل إجمالي الخسائر، عبر نطاق المعايير الذي جرى اختباره.","stat.k2":"نسبة الصفقات الرابحة","stat.v2":"~32%","stat.d2":"منخفضة عن قصد. معظم الصفقات خسائر صغيرة؛ والأفضلية كلها في الصفقات الرابحة.","stat.k3":"أقصى تراجع","stat.d3":"أعمق هبوط من قمة إلى قاع خلال الاختبار. توقّع أن تمرّ بمثله.","stat.k4":"فترة الاختبار","stat.v4":"365 <span class=\"unit\">يومًا</span>","stat.d4":"سنة كاملة من البيانات التاريخية، مع احتساب تكلفة السبريد الحقيقية طوال الفترة.","stat.foot":"هذه الأرقام ناتجة عن محاكاة تاريخية، وليست من حساب حقيقي. النتائج الافتراضية لها حدود متأصلة — وإفصاح المخاطر الكامل موجود أسفل الصفحة، ويستحق أن تقرأه قبل أي شيء آخر هنا.","chart.h3":"مؤشر النمو — اختبار تاريخي على 12 شهرًا","chart.sub":"مُفهرَس عند 100 في بداية فترة الاختبار، على مقياس لوغاريتمي. هذا مؤشر، وليس مبلغًا بالدولار، ولا كشف حساب، ولا توقّعًا للمستقبل.","chart.ro":"المؤشر <b id=\"ro-v\">548</b> &nbsp;·&nbsp; اليوم <span id=\"ro-d\">363</span>","chart.svgalt":"رسم بياني خطي لمؤشر نمو من اختبار تاريخي يبدأ عند 100 وينتهي قرب 548 خلال اثني عشر شهرًا، مع تحديد حدّ الفصل بين عيّنة التحسين وعيّنة التحقق وأقصى تراجع.","chart.zoneL":"نافذة التحسين","chart.zoneR":"التحقق — خارج العينة","chart.dd":"−24.8% من القمة إلى القاع","chart.axis":"المؤشر","chart.xaxis":"شهر فترة الاختبار","chart.key1":"مؤشر النمو","chart.key2":"أقصى تراجع","chart.key3":"مقياس لوغاريتمي — الارتفاع نفسه يعني النسبة نفسها","chart.key4":"السبريد التاريخي الحقيقي محتسَب","chart.key5":"افتراضي — ليس حسابًا حقيقيًا","chart.caption":"التراجع وحدّ الفصل بين العيّنتين مرسومان على الرسم البياني عن قصد. المنحنى الذي لا تظهر عليه أسوأ لحظاته رسمٌ تسويقي، لا نتيجة اختبار.","meth.h2":"معظم روبوتات التداول الموجَّهة للأفراد ليست إلا حدسًا مكتوبًا في صورة كود.","meth.intro":"شخص ما يلاحظ نمطًا، فيكتبه، ثم يجري اختبارًا تاريخيًا واحدًا على البيانات نفسها التي أوحت له بالفكرة، وينشر لقطة الشاشة. تبدو النتيجة استثنائية، لأنها فُصّلت على مقاس السنة التي اختُبرت عليها بالضبط. <strong>\"ذا غولد ديسك\" بُني بالطريقة المعاكسة تمامًا</strong> — والخطوات الأربع أدناه هي السبب الكامل لوجود هذه الصفحة.","meth.tag1":"مسح المعايير","meth.h1":"مئات التوليفات من المعايير، لا توليفة محظوظة واحدة","meth.p1a":"كل إعداد يتيحه النظام جرى مسحه عبر نطاقه المعقول واختباره في تركيبات متعددة — مئات النسخ، لا تلك التي صادف أن بدت جيدة على الرسم البياني.","meth.p1b":"الهدف ليس تتويج التوليفة الأعلى نتيجةً. الهدف هو رؤية <em>شكل</em> النتائج. الأداء الذي يستقر على هضبة عريضة، حيث تتصرف الإعدادات المجاورة بشكل متقارب، مؤشر على شيء حقيقي. أما الأداء الذي يقفز عند تركيبة واحدة بالضبط وينهار على جانبيها، فهو تفصيل على المقاس في ثوب أنيق.","meth.tag2":"خارج العينة","meth.h2b":"ضُبط على نصف السنة، وأُثبت على النصف الذي لم يره قط","meth.p2a":"قُسّمت السنة إلى نصفين. اختيرت المعايير باستخدام النصف الأول فقط. ثم جُمّدت تلك المعايير — <em>دون أي تعديل، ودون نظرة ثانية</em> — وشُغّلت على النصف الثاني الذي لم يكن له أي دور في أي قرار ضبط.","meth.p2b":"هذا هو الاختبار الذي لا ينجو منه إلا القليل، وهو الوحيد الذي يجيب عن السؤال الحقيقي: هل توجد الأفضلية خارج البيانات التي اكتُشفت فيها؟","meth.tag3":"التكلفة","meth.h3b":"سبريد تاريخي حقيقي في كل اختبار، لا رقم مثالي","meth.p3a":"يتّسع سبريد الذهب عند التدوير اليومي، وحول الأخبار، وفي الأوقات الضعيفة من الجلسة — أي في اللحظات نفسها التي تنطلق فيها كثير من الإشارات. والاختبار الذي يُجرى بسبريد ثابت ومريح يحذف تلك التكلفة بهدوء.","meth.p3b":"كل نتيجة على هذه الصفحة تُحمِّل الصفقة <em>السبريد التاريخي الحقيقي</em> في تلك اللحظة. والاستراتيجيات التي لا تعمل إلا في سوق بلا احتكاك لا تخرج من مرحلة الاختبار.","meth.tag4":"النافذة الزمنية","meth.h4b":"ساعةً بساعة، ويومًا بيوم — أين تكمن الأفضلية فعلًا","meth.p4a":"حُلّلت النتائج حسب ساعة اليوم وحسب يوم الأسبوع، بدلًا من الحكم عليها كرقم واحد مختلط. يمكن لنظام أن يبدو رابحًا في المجمل بينما هو يخسر بهدوء في جلسات بعينها وتحمله جلسات أخرى.","meth.p4b":"النوافذ التي لا تُظهر أفضلية واضحة <em>تُستبعَد من التداول</em> بدلًا من التعويل على الأمل. صفقات أقل، في الساعات التي استحقت مكانها.","split.h4":"كيف قُسّمت السنة","split.k1":"الأشهر 1–6","split.t1":"نافذة التحسين","split.d1":"هنا اختيرت المعايير. كل قرار يتعلق بضبط النظام اتُّخذ باستخدام هذه البيانات وحدها.","split.k2":"الأشهر 7–12","split.t2":"نافذة التحقق — خارج العينة","split.d2":"جُمّدت الإعدادات ثم شُغّلت للأمام. لم يكن النظام قد رأى هذه البيانات حين اختيرت معاييره.","split.r1":"اليوم 1","split.r2":"اليوم 183","split.r3":"اليوم 365","how.h2":"أربع خطوات، ولا واحدة منها عليك.","how.lede":"من الإشارة إلى إغلاق الصفقة، يجري التسلسل من دونك. هذا هو ترتيبه، في كل مرة.","how.t1":"إشارة عند إغلاق مؤكد","how.d1":"تُقيَّم الشروط على الشموع التي أغلقت فعلًا فقط. لا شيء يتحرك بناءً على ذيل شمعة ما زال يتحرك، فلا تظهر الإشارة ثم تختفي.","how.t2":"تُرسَل عبر ويب هوك آمن","how.d2":"تنتقل الإشارة عبر ويب هوك موثّق إلى الجسر الذي يعمل مع منصة ميتاتريدر&nbsp;5 لديك. لا نسخ، ولا إعادة توجيه، ولا إشارات تفوتك.","how.t3":"دخول بحجم محسوب على المخاطرة","how.d3":"يُحسب حجم المركز من صافي قيمة حسابك الحيّ ومن المسافة إلى وقف الخسارة — <code>2%</code> من رأس المال في كل صفقة. ليس حجمًا ثابتًا يعني شيئًا مختلفًا عند كل رصيد.","how.t4":"الخروج يدير نفسه","how.d4":"يُربط وقف الخسارة والهدف عند الدخول. تُغلق الصفقة عند أحدهما تلقائيًا، سواء كنت أمام شاشتك أو نائمًا أو بعيدًا تمامًا.","how.foot":"أنت لا تفتح الصفقة. ولا تحدد حجمها. ولا تغلقها. <span>مهمتك أن تُبقي المنصة تعمل وأن تقرر ما إذا كنت مرتاحًا لمستوى المخاطرة — والباقي مهمة النظام.</span>","price.k":"وصول مبكر","price.per":"دفعة واحدة","price.sub":"دفعة واحدة. لا اشتراك، ولا مشاركة في الأرباح، ولا رخصة شهرية.","price.i1":"النظام، مهيّأ للعمل على ميتاتريدر&nbsp;5","price.i2":"مجموعة المعايير المتحقَّق منها التي تقف خلف الأرقام في هذه الصفحة","price.i3":"توثيق الإعداد، من البداية إلى النهاية","price.i4":"تقرير التحقق الكامل — المسح والتقسيم وافتراضات التكلفة","price.i5":"تحديثات وتحسينات طوال فترة الوصول المبكر","price.i6":"تواصل مباشر معي أثناء تشغيله","price.cta":"اطلب الوصول المبكر","price.nopay":"الدفع بالعملات الرقمية — تُصدر التفاصيل مع كل طلب","price.h3":"ما تشتريه ما زال في بدايته، وأفضّل أن أقول ذلك هنا بدلًا من أن أقوله في رسالة لاحقة.","price.p1":"المنهجية متحقَّق منها. أما <strong>السجل الحقيقي فقصير</strong> — فقد تأكّد عمله على حساب حقيقي مؤخرًا، وهذا شيء مختلف عن سنوات من النتائج المدقَّقة. ومن يبيعك عقدًا من الإثبات لنظام بُني هذا العام إنما يبيعك شيئًا آخر.","price.p2":"مبلغ 399 دولارًا سعر وصول مبكر، وهو يعكس هذه المقايضة بالضبط: أنت تدخل قبل أن يطول السجل الحقيقي، بسعر لن يبقى موجودًا حين يطول. <strong>وكلما نما السجل الحقيقي، ارتفع السعر.</strong> لا موعد نهائي مرتبط بذلك، ولا عدّاد على هذه الصفحة — السعر يتحرك ببساطة حين تتحرك الأدلة.","price.p3":"وإن فضّلت الانتظار ودفع مبلغ أكبر مقابل سجل أطول، فهذا قرار منطقي تمامًا، وكنت سأقول لك الشيء نفسه لو سألتني مباشرة.","faq.h2":"الأسئلة التي تستحق أن تُطرح قبل الشراء.","faq.q1":"هل الربح مضمون؟","faq.a1a":"<strong>لا.</strong> لا شيء في التداول مضمون، ومن يقول لك غير ذلك فإمّا أنه يكذب أو أنه على وشك أن يُخطئ علنًا.","faq.a1b":"ما يملكه النظام منهجية مختبَرة ونموذج مخاطرة محدد. يمكن أن يخسر. وسيمرّ بأسابيع خاسرة وأشهر خاسرة — والتراجع البالغ 24.8% في الاختبار ليس رقمًا هامشيًا، بل فترة حقيقية تراجع فيها الحساب وكان التصرف الصحيح هو الاستمرار. تعامل مع أي مال تضعه خلفه على أنه مال تحتمل خسارته.","faq.q2":"هل تداول بأموال حقيقية؟","faq.a2a":"<strong>نعم — مؤخرًا، وهذا هو الحد الصادق للادعاء.</strong> تأكّد التشغيل الحيّ على حساب حقيقي. وما لا يوجد بعد هو سجل طويل بأموال حقيقية، ولن أُلبس السجل القصير ثوب الطويل.","faq.a2b":"كل رقم على هذه الصفحة مصدره محاكاة تاريخية، موسومة بوضوح على هذا الأساس. أما السجل الحقيقي فيُبنى الآن، على المكشوف، وهو سبب كون السعر ما هو عليه اليوم.","faq.q3":"هل أحتاج إلى مراقبته؟","faq.a3a":"<strong>لا.</strong> هذا هو الغرض منه كله. الإشارات تنطلق عند الإغلاقات المؤكدة، وأحجام الدخول تُحسب تلقائيًا، والخروج مربوط بالصفقة لحظة فتحها.","faq.a3b":"تحتاج إلى ميتاتريدر&nbsp;5 يعمل ومتصل — ويستخدم معظم الناس خادمًا افتراضيًا رخيصًا حتى لا يرتبط بجهازهم — وتحتاج إلى متابعته كما تتابع أي حساب. أما ما لا تحتاج إليه فهو الجلوس أمام الشارت في انتظار الضغط على الزر.","faq.q4":"لماذا أثق بالاختبار التاريخي؟","faq.a4a":"<strong>لا ينبغي أن تثق — لا بشكل أعمى.</strong> الاختبار التاريخي أسهل شيء يمكن تزييفه في هذا المجال، ومعظم ما عُرض عليك منه كان مفصّلًا على البيانات نفسها التي اختُبر عليها.","faq.a4b":"ولهذا السبب بالذات بُني هذا الاختبار بالطريقة التي بُني بها: معايير اختيرت على نصف السنة ثم جُمّدت، ثم شُغّلت على نصف لم تره قط؛ وسبريد تاريخي حقيقي محسوب على كل صفقة؛ ومئات التوليفات من المعايير جرى اختبارها للتأكد من أن النتيجة تقع على هضبة لا على قمة حادة. تحصل على تقرير التحقق الكامل مع النظام، ولك أن تفكّكه قبل أن تنفّذ صفقة حقيقية واحدة.","faq.q5":"ما الذي أحتاجه لتشغيله؟","faq.a5a":"حساب ميتاتريدر&nbsp;5 لدى وسيط يوفّر الذهب بسبريد تنافسي، وجهاز أو خادم افتراضي يبقى متصلًا. الإعداد موثّق خطوة بخطوة، وسأساعدك في تنفيذه خلال فترة الوصول المبكر.","faq.a5b":"ابدأ على حساب تجريبي للمدة التي تريدها. لا اعتراض مني على ذلك — بل هو ما كنت سأفعله.","risk.h3":"اقرأ هذا قبل أن تشتري أي شيء","risk.p1":"<strong>ينطوي التداول على مخاطر خسارة كبيرة، وهو غير مناسب لكل مستثمر.</strong> المنتجات ذات الرافعة المالية، مثل الذهب الفوري وعقود الفروقات والعقود الآجلة، يمكن أن تتحرك ضد المركز بسرعة، وقد تؤدي إلى خسائر تتجاوز إيداعك الأولي لدى بعض الوسطاء وفي بعض أنواع الحسابات. ولا ينبغي أبدًا أن تتداول بأموال لا تحتمل خسارتها بالكامل.","risk.p2":"<strong>النتائج المستندة إلى الاختبار التاريخي والمحاكاة نتائج افتراضية ولا تمثّل تداولًا فعليًا.</strong> ولأن صفقات الاختبار التاريخي لم تُنفَّذ فعليًا، فقد تكون النتائج أقل أو أكثر من الواقع في احتساب عوامل مثل الانزلاق السعري والسيولة ورفض الأوامر وإعادة التسعير واختلاف التنفيذ بين الوسطاء وتغيّر ظروف السوق. ويُعدّ الأداء الافتراضي بأثر رجعي. <strong>ولا يوجد أي تمثيل بأن أي حساب سيحقق، أو يُرجَّح أن يحقق، أرباحًا أو خسائر مماثلة لما هو معروض.</strong> والأداء السابق، سواء كان فعليًا أو محاكاة، ليس مؤشرًا على النتائج المستقبلية.","risk.p3":"<strong>\"ذا غولد ديسك\" يُباع كبرنامج فقط.</strong> فهو أداة تنفّذ مجموعة قواعد محددة على حسابك أنت، لدى وسيطك أنت، وتحت سيطرتك أنت. ولا شيء في هذه الصفحة يُعدّ نصيحة استثمارية أو مالية، أو توصية بتداول أي أداة، أو عرضًا لإدارة أموال نيابةً عنك.","risk.p4":"<strong>أنا لست مستشارًا استثماريًا مرخصًا، ولا وسيطًا ماليًا، ولا مخططًا ماليًا</strong>، ولا ينبغي التعامل مع أي جزء من هذه الصفحة على أنه نصيحة شخصية. أنت مسؤول عن قراراتك في التداول، وعن مدى ملاءمة هذا البرنامج لظروفك، وعن الالتزام بالقوانين واللوائح السارية في مكان إقامتك. ويُنصح باستشارة مختص مرخص قبل تعريض رأس مالك للمخاطر.","risk.p5":"<strong>لا يوجد أي ضمان للربح، لا صراحةً ولا ضمنًا، في أي موضع من هذه الصفحة أو في أي مراسلة.</strong> يمكن للنظام أن ينتج صفقات خاسرة وأسابيع خاسرة وأشهرًا خاسرة، وسينتجها فعلًا. والشراء يمنحك ترخيصًا لاستخدام البرنامج، ولا يمنحك توقّعًا بدخل.","cta.h2":"انضم إلى قائمة الوصول المبكر.","cta.lede1":"اترك بريدك الإلكتروني وسأعود إليك شخصيًا بتقرير التحقق، وما يتطلبه الإعداد، وأين يقف السجل الحقيقي حاليًا. لا تسلسل رسائل آليًا، ولا حملة تسويقية.","cta.lede2":"الدفع غير مفتوح بعد — تُرتَّب عملية الدفع مباشرةً بعد أن تطّلع على التفاصيل وتقرر أن النظام يناسبك.","cta.lblEmail":"البريد الإلكتروني","cta.lblNote":"أي سؤال تريد طرحه <span class=\"opt\">(اختياري)</span>","cta.phEmail":"you@example.com","cta.phNote":"الوسيط الذي تتعامل معه، أو حجم الحساب الذي تفكّر فيه، أو أي شيء تريد معرفته قبل أن تلتزم.","cta.btn":"اطلب الوصول المبكر","cta.or":"أو راسلني على","foot.brand":"ذا غولد ديسك &nbsp;·&nbsp; XAU/USD &nbsp;·&nbsp; ميتاتريدر 5","foot.disc":"برنامج فقط. ليس نصيحة استثمارية. ينطوي التداول على مخاطر خسارة كبيرة. ونتائج الاختبار التاريخي افتراضية ولا تضمن الأداء المستقبلي.","js.err":"أدخل بريدًا إلكترونيًا حتى يكون هناك عنوان للرد عليه.","js.ok":"يجري فتح تطبيق البريد لديك — إن لم يحدث شيء، أرسل التفاصيل نفسها إلى ","js.subject":"ذا غولد ديسك — طلب وصول مبكر","js.emailLine":"البريد الإلكتروني: ","js.nomsg":"(لا توجد رسالة)","js.roIndex":"المؤشر","js.roDay":"اليوم","pay.h4":"كيف تتم عملية الدفع","pay.t1":"تطلب الوصول","pay.d1":"ترسل النموذج، وأرد عليك شخصيًا. ويسعدني إجراء مكالمة قصيرة قبل أن تدفع أي شيء.","pay.t2":"يصدر طلب دفع خاص بك","pay.d2":"أرسل لك عنوان محفظة ومبلغًا محددًا على الشبكة التي اخترتها. العنوان يُصدَر لكل طلب على حدة، حتى تكون عملية الدفع الخاصة بك قابلة للتمييز.","pay.t3":"ترسل المبلغ","pay.d3":"من محفظتك أنت. تُسعَّر العملات المستقرة بما يعادل 399 دولارًا، ورسوم الشبكة على عاتقك.","pay.t4":"التسليم","pay.d4":"بمجرد تأكيد المعاملة على الشبكة، تحصل على النظام ومجموعة المعايير والتوثيق وتقرير التحقق، إضافة إلى المساعدة في الإعداد.","pay.nets":"الشبكات المقبولة","pay.addrH":"عناوين الدفع","pay.copy":"نسخ","pay.copied":"تم النسخ","pay.note":"المدفوعات بالعملات الرقمية غير قابلة للاسترجاع — لا يوجد استرداد عبر البنك ولا وسيط تشتكي إليه. وهذا سلاح ذو حدين، وهو بالضبط سبب تفضيلي أن تتحدث معي أولًا، وأن تشغّل النظام على حساب تجريبي، قبل أن ترسل أي مبلغ.","cta.lblNet":"الشبكة المفضلة للدفع","cta.netAny":"لا يوجد تفضيل","faq.q6":"لماذا الدفع بالعملات الرقمية فقط؟","faq.a6a":"<strong>لأن بوابات الدفع بالبطاقات تصنّف برامج التداول ضمن الفئات عالية المخاطر.</strong> الحسابات في هذه الفئة تُجمَّد أحيانًا في منتصف العمل، وقد تُحتجز الأموال شهورًا. ولا أريد أن أبني عملًا فوق هذا الخطر. أما التحويل بالعملات الرقمية فيصل مباشرة، دون وسيط يستطيع إيقافه.","faq.a6b":"ولأكون صريحًا بشأن الجانب الآخر: هذا يعني أنك ترسل مبلغًا غير قابل للاسترجاع، ودون حق في استرداد الأموال. لذلك تحقّق أولًا — اسألني ما شئت، أو تحدث معي في مكالمة، أو شغّل النظام على حساب تجريبي للمدة التي تريدها. أن أخسر عملية بيع أهون عندي من أن ترسل مالًا وأنت غير مطمئن.","js.sent":"تم الاستلام. سأعود إليك شخصيًا على هذا البريد.","js.fail":"تعذّر إرسال النموذج. راسلني مباشرة على "};
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var lang = "en";
+
+  /* snapshot the English so switching back is lossless */
+  var ORIG = new Map();
+  document.querySelectorAll("[data-i18n]").forEach(function(el){
+    ORIG.set(el, el.namespaceURI === SVG_NS ? el.textContent : el.innerHTML);
+  });
+  var ORIG_ATTR = new Map();
+  document.querySelectorAll("[data-i18n-attr]").forEach(function(el){
+    var spec = el.getAttribute("data-i18n-attr").split("|");
+    ORIG_ATTR.set(el, [spec[0], el.getAttribute(spec[0]), spec[1]]);
+  });
+
+  function setLang(next){
+    lang = (next === "ar") ? "ar" : "en";
+    var isAr = lang === "ar";
+    document.documentElement.lang = lang;
+    document.documentElement.dir = isAr ? "rtl" : "ltr";
+
+    document.querySelectorAll("[data-i18n]").forEach(function(el){
+      var k = el.getAttribute("data-i18n");
+      var v = isAr ? AR[k] : ORIG.get(el);
+      if (v == null) return;
+      if (el.namespaceURI === SVG_NS) el.textContent = v.replace(/&minus;/g,"\u2212").replace(/&mdash;/g,"\u2014");
+      else el.innerHTML = v;
+    });
+
+    document.querySelectorAll("[data-i18n-attr]").forEach(function(el){
+      var rec = ORIG_ATTR.get(el);
+      if (!rec) return;
+      el.setAttribute(rec[0], isAr ? (AR[rec[2]] || rec[1]) : rec[1]);
+    });
+
+    if (isAr && AR["meta.title"]) document.title = AR["meta.title"];
+
+    document.querySelectorAll(".lang-btn").forEach(function(b){
+      b.setAttribute("aria-pressed", b.getAttribute("data-lang") === lang ? "true" : "false");
+    });
+
+    try {
+      var u = new URL(window.location.href);
+      if (isAr) u.searchParams.set("lang","ar"); else u.searchParams.delete("lang");
+      history.replaceState(null, "", u);
+    } catch(e){}
+
+    resetReadout();
+  }
+
+  document.querySelectorAll(".lang-btn").forEach(function(b){
+    b.addEventListener("click", function(){ setLang(b.getAttribute("data-lang")); });
+  });
+
+  /* ---- contact form ---- */
+  var form = document.getElementById("waitlist");
+  var msg  = document.getElementById("msg");
+
+  function say(text, bad){
+    msg.textContent = text;
+    msg.style.color = bad ? "#C0564B" : "";
+    msg.classList.add("show");
+  }
+
+  if (form) {
+    form.addEventListener("submit", function(e){
+      e.preventDefault();
+      var isAr = lang === "ar";
+      var email = document.getElementById("email");
+      var note  = document.getElementById("note");
+      var net   = document.getElementById("network");
+      var val   = (email.value || "").trim();
+
+      if (!val || val.indexOf("@") < 1 || val.indexOf(".") < 0) {
+        say(isAr ? AR["js.err"]
+                 : "Enter an email address so there's somewhere to reply to.", true);
+        email.focus();
+        return;
+      }
+
+      var body    = (note.value || "").trim();
+      var network = net ? net.value : "";
+
+      /* --- real delivery when a Web3Forms key is configured --- */
+      if (FORM_ACCESS_KEY) {
+        var btn = form.querySelector('button[type="submit"]');
+        if (btn) btn.disabled = true;
+        say(isAr ? "…" : "Sending…");
+
+        fetch("https://api.web3forms.com/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({
+            access_key: FORM_ACCESS_KEY,
+            subject: "The Gold Desk — early access request",
+            from_name: "The Gold Desk website",
+            email: val,
+            network: network || "no preference",
+            language: lang,
+            message: body || "(no message)",
+            botcheck: form.botcheck && form.botcheck.checked ? "1" : ""
+          })
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d && d.success) {
+            say(isAr ? AR["js.sent"]
+                     : "Received. I'll come back to you personally at that address.");
+            form.reset();
+          } else {
+            throw new Error("rejected");
+          }
+        })
+        .catch(function(){
+          say((isAr ? AR["js.fail"] : "Couldn't send the form. Email me directly at ")
+              + CONTACT_EMAIL, true);
+        })
+        .then(function(){ if (btn) btn.disabled = false; });
+        return;
+      }
+
+      /* --- fallback: open a mail draft --- */
+      var lbl  = isAr ? AR["js.emailLine"] : "Email: ";
+      var none = isAr ? AR["js.nomsg"] : "(no message)";
+      var subj = isAr ? AR["js.subject"] : "The Gold Desk — early access request";
+      var text = lbl + val + "\n" + "Network: " + (network || "-") + "\n\n" + (body || none);
+      var href = "mailto:" + CONTACT_EMAIL +
+                 "?subject=" + encodeURIComponent(subj) +
+                 "&body=" + encodeURIComponent(text);
+      say(isAr ? AR["js.ok"] + CONTACT_EMAIL + "."
+               : "Opening your mail app — if nothing happens, send the same details to " + CONTACT_EMAIL + ".");
+      window.location.href = href;
+    });
+  }
+
+  /* ---- crypto addresses: only render the ones actually filled in ---- */
+  (function(){
+    var box = document.getElementById("addrs");
+    if (!box) return;
+    var live = CRYPTO.filter(function(c){ return c.address && c.address.trim().length > 8; });
+    if (!live.length) return;
+    box.hidden = false;
+    live.forEach(function(c){
+      var row = document.createElement("div");
+      row.className = "addr";
+      var n = document.createElement("span"); n.className = "an"; n.textContent = c.label;
+      var a = document.createElement("code"); a.textContent = c.address.trim();
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "copy-btn";
+      b.setAttribute("data-i18n", "pay.copy"); b.textContent = "Copy";
+      b.addEventListener("click", function(){
+        var done = function(){
+          var was = b.textContent;
+          b.textContent = (lang === "ar") ? AR["pay.copied"] : "Copied";
+          setTimeout(function(){ b.textContent = was; }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(c.address.trim()).then(done, function(){});
+        } else {
+          var t = document.createElement("textarea");
+          t.value = c.address.trim(); document.body.appendChild(t);
+          t.select(); try { document.execCommand("copy"); done(); } catch(err){}
+          document.body.removeChild(t);
+        }
+      });
+      row.appendChild(n); row.appendChild(a); row.appendChild(b);
+      box.appendChild(row);
+    });
+  })();
+
+  /* ---- chart crosshair readout ---- */
+  var DATA = [{"d":0.0,"v":100.0,"x":78.0,"y":311.0},{"d":0.47,"v":98.0,"x":79.2,"y":313.9},{"d":1.11,"v":96.1,"x":80.8,"y":316.7},{"d":3.46,"v":94.4,"x":86.8,"y":319.2},{"d":6.01,"v":101.6,"x":93.2,"y":308.7},{"d":7.86,"v":108.4,"x":98.0,"y":299.4},{"d":9.24,"v":106.2,"x":101.5,"y":302.3},{"d":11.39,"v":104.0,"x":106.9,"y":305.3},{"d":13.3,"v":101.9,"x":111.7,"y":308.2},{"d":14.39,"v":109.3,"x":114.5,"y":298.2},{"d":15.37,"v":107.3,"x":117.0,"y":300.9},{"d":17.04,"v":115.4,"x":121.2,"y":290.4},{"d":18.87,"v":122.7,"x":125.9,"y":281.6},{"d":20.52,"v":120.2,"x":130.0,"y":284.6},{"d":21.58,"v":118.1,"x":132.7,"y":287.1},{"d":23.66,"v":126.1,"x":138.0,"y":277.7},{"d":24.61,"v":134.4,"x":140.4,"y":268.5},{"d":25.98,"v":131.7,"x":143.9,"y":271.4},{"d":27.55,"v":142.2,"x":147.9,"y":260.5},{"d":28.29,"v":139.3,"x":149.8,"y":263.4},{"d":30.54,"v":136.7,"x":155.5,"y":266.0},{"d":31.25,"v":134.0,"x":157.3,"y":268.9},{"d":32.77,"v":131.3,"x":161.1,"y":271.8},{"d":35.42,"v":128.7,"x":167.9,"y":274.7},{"d":37.41,"v":135.6,"x":172.9,"y":267.2},{"d":37.92,"v":141.7,"x":174.2,"y":260.9},{"d":38.41,"v":138.8,"x":175.5,"y":263.9},{"d":39.53,"v":150.5,"x":178.3,"y":252.3},{"d":41.11,"v":147.7,"x":182.3,"y":255.0},{"d":42.35,"v":145.0,"x":185.4,"y":257.6},{"d":43.03,"v":142.6,"x":187.2,"y":260.0},{"d":45.67,"v":140.3,"x":193.9,"y":262.4},{"d":46.12,"v":137.8,"x":195.0,"y":264.9},{"d":46.5,"v":135.3,"x":196.0,"y":267.6},{"d":49.12,"v":132.5,"x":202.6,"y":270.6},{"d":49.71,"v":129.9,"x":204.1,"y":273.4},{"d":52.11,"v":127.3,"x":210.2,"y":276.3},{"d":53.87,"v":124.9,"x":214.7,"y":279.1},{"d":56.29,"v":131.0,"x":220.8,"y":272.2},{"d":58.28,"v":128.5,"x":225.8,"y":275.0},{"d":59.86,"v":136.3,"x":229.9,"y":266.5},{"d":62.3,"v":134.0,"x":236.0,"y":269.0},{"d":62.73,"v":131.2,"x":237.1,"y":272.0},{"d":63.68,"v":128.6,"x":239.5,"y":274.9},{"d":64.26,"v":126.0,"x":241.0,"y":277.8},{"d":66.98,"v":123.4,"x":247.9,"y":280.7},{"d":67.39,"v":121.0,"x":249.0,"y":283.5},{"d":68.65,"v":119.0,"x":252.2,"y":286.0},{"d":69.02,"v":117.0,"x":253.1,"y":288.5},{"d":70.39,"v":124.3,"x":256.6,"y":279.7},{"d":71.79,"v":121.8,"x":260.1,"y":282.6},{"d":73.05,"v":119.8,"x":263.3,"y":285.0},{"d":73.87,"v":117.8,"x":265.4,"y":287.5},{"d":75.03,"v":124.1,"x":268.4,"y":280.0},{"d":77.78,"v":122.1,"x":275.3,"y":282.3},{"d":78.59,"v":119.7,"x":277.4,"y":285.1},{"d":81.02,"v":117.3,"x":283.5,"y":288.1},{"d":82.1,"v":115.1,"x":286.3,"y":290.7},{"d":83.01,"v":113.1,"x":288.6,"y":293.3},{"d":83.66,"v":122.5,"x":290.2,"y":281.8},{"d":84.7,"v":128.8,"x":292.9,"y":274.6},{"d":86.53,"v":126.7,"x":297.5,"y":277.0},{"d":87.28,"v":124.4,"x":299.4,"y":279.6},{"d":87.66,"v":121.9,"x":300.4,"y":282.6},{"d":88.18,"v":129.2,"x":301.7,"y":274.2},{"d":90.09,"v":126.9,"x":306.6,"y":276.8},{"d":91.57,"v":124.8,"x":310.3,"y":279.2},{"d":92.83,"v":122.4,"x":313.5,"y":281.9},{"d":94.75,"v":120.0,"x":318.4,"y":284.8},{"d":95.12,"v":117.9,"x":319.3,"y":287.3},{"d":95.97,"v":116.0,"x":321.5,"y":289.7},{"d":96.79,"v":125.9,"x":323.5,"y":277.9},{"d":99.53,"v":123.8,"x":330.5,"y":280.4},{"d":101.1,"v":121.4,"x":334.5,"y":283.2},{"d":101.87,"v":129.7,"x":336.4,"y":273.6},{"d":104.46,"v":127.1,"x":343.0,"y":276.5},{"d":105.34,"v":136.7,"x":345.2,"y":266.1},{"d":106.83,"v":134.4,"x":349.0,"y":268.5},{"d":107.51,"v":145.6,"x":350.7,"y":257.1},{"d":110.0,"v":142.6,"x":357.1,"y":260.0},{"d":112.69,"v":139.7,"x":363.9,"y":262.9},{"d":114.48,"v":145.9,"x":368.4,"y":256.7},{"d":116.08,"v":143.4,"x":372.5,"y":259.2},{"d":116.72,"v":140.6,"x":374.1,"y":262.1},{"d":117.48,"v":152.3,"x":376.1,"y":250.6},{"d":119.65,"v":149.5,"x":381.5,"y":253.2},{"d":121.8,"v":161.1,"x":387.0,"y":242.5},{"d":124.07,"v":157.8,"x":392.8,"y":245.5},{"d":125.56,"v":171.4,"x":396.5,"y":233.6},{"d":126.98,"v":181.6,"x":400.2,"y":225.3},{"d":128.38,"v":190.5,"x":403.7,"y":218.5},{"d":130.4,"v":186.8,"x":408.8,"y":221.2},{"d":130.71,"v":183.0,"x":409.6,"y":224.2},{"d":131.44,"v":193.7,"x":411.5,"y":216.0},{"d":133.14,"v":207.9,"x":415.8,"y":205.9},{"d":133.86,"v":203.6,"x":417.6,"y":208.9},{"d":134.17,"v":199.8,"x":418.4,"y":211.6},{"d":135.15,"v":195.8,"x":420.9,"y":214.5},{"d":136.79,"v":192.6,"x":425.0,"y":216.8},{"d":137.71,"v":188.6,"x":427.4,"y":219.8},{"d":139.18,"v":204.6,"x":431.1,"y":208.2},{"d":140.54,"v":200.6,"x":434.5,"y":211.0},{"d":142.21,"v":217.6,"x":438.8,"y":199.3},{"d":143.52,"v":227.5,"x":442.1,"y":192.9},{"d":146.18,"v":223.8,"x":448.8,"y":195.3},{"d":148.62,"v":220.0,"x":455.0,"y":197.8},{"d":150.02,"v":231.7,"x":458.6,"y":190.3},{"d":151.95,"v":245.4,"x":463.5,"y":182.0},{"d":153.89,"v":241.3,"x":468.4,"y":184.5},{"d":154.39,"v":236.3,"x":469.7,"y":187.5},{"d":154.83,"v":232.1,"x":470.8,"y":190.1},{"d":156.34,"v":227.3,"x":474.6,"y":193.1},{"d":157.71,"v":222.9,"x":478.1,"y":195.9},{"d":160.03,"v":218.7,"x":484.0,"y":198.6},{"d":160.79,"v":214.4,"x":485.9,"y":201.4},{"d":162.6,"v":210.6,"x":490.5,"y":204.0},{"d":164.89,"v":221.5,"x":496.3,"y":196.8},{"d":167.02,"v":234.5,"x":501.7,"y":188.6},{"d":168.36,"v":230.6,"x":505.1,"y":191.0},{"d":169.18,"v":226.3,"x":507.2,"y":193.7},{"d":170.1,"v":239.2,"x":509.5,"y":185.8},{"d":171.11,"v":234.7,"x":512.1,"y":188.5},{"d":172.33,"v":250.8,"x":515.2,"y":178.9},{"d":174.54,"v":272.0,"x":520.8,"y":167.3},{"d":175.0,"v":266.9,"x":522.0,"y":170.0},{"d":175.76,"v":289.2,"x":523.9,"y":158.5},{"d":177.16,"v":283.3,"x":527.4,"y":161.5},{"d":178.79,"v":278.0,"x":531.6,"y":164.2},{"d":179.38,"v":294.1,"x":533.1,"y":156.1},{"d":180.75,"v":288.1,"x":536.6,"y":159.0},{"d":181.04,"v":308.8,"x":537.3,"y":149.1},{"d":181.75,"v":334.5,"x":539.1,"y":137.6},{"d":182.62,"v":354.5,"x":541.3,"y":129.2},{"d":185.34,"v":348.6,"x":548.2,"y":131.6},{"d":187.72,"v":341.6,"x":554.3,"y":134.5},{"d":188.12,"v":336.2,"x":555.3,"y":136.9},{"d":190.84,"v":356.9,"x":562.2,"y":128.3},{"d":193.48,"v":350.3,"x":568.9,"y":131.0},{"d":194.72,"v":376.9,"x":572.0,"y":120.5},{"d":197.37,"v":370.5,"x":578.7,"y":122.9},{"d":199.3,"v":400.1,"x":583.6,"y":111.9},{"d":201.87,"v":392.3,"x":590.1,"y":114.7},{"d":203.16,"v":384.9,"x":593.4,"y":117.4},{"d":205.06,"v":377.4,"x":598.2,"y":120.3},{"d":207.15,"v":369.7,"x":603.5,"y":123.2},{"d":208.34,"v":363.6,"x":606.6,"y":125.6},{"d":210.02,"v":356.5,"x":610.8,"y":128.4},{"d":210.94,"v":349.9,"x":613.1,"y":131.1},{"d":213.6,"v":344.1,"x":619.9,"y":133.5},{"d":215.19,"v":338.0,"x":623.9,"y":136.1},{"d":217.76,"v":331.4,"x":630.5,"y":138.9},{"d":218.23,"v":324.9,"x":631.6,"y":141.7},{"d":218.59,"v":318.9,"x":632.5,"y":144.4},{"d":218.88,"v":335.4,"x":633.3,"y":137.2},{"d":220.28,"v":328.5,"x":636.8,"y":140.2},{"d":221.1,"v":322.4,"x":638.9,"y":142.9},{"d":221.84,"v":340.6,"x":640.8,"y":135.0},{"d":222.99,"v":361.6,"x":643.7,"y":126.4},{"d":223.86,"v":354.8,"x":645.9,"y":129.1},{"d":225.17,"v":349.0,"x":649.2,"y":131.5},{"d":227.91,"v":342.3,"x":656.2,"y":134.3},{"d":228.64,"v":357.4,"x":658.0,"y":128.1},{"d":229.61,"v":350.8,"x":660.5,"y":130.7},{"d":230.99,"v":371.8,"x":664.0,"y":122.4},{"d":232.95,"v":365.1,"x":669.0,"y":125.0},{"d":235.64,"v":394.1,"x":675.8,"y":114.0},{"d":237.43,"v":387.3,"x":680.4,"y":116.6},{"d":238.3,"v":413.8,"x":682.6,"y":107.0},{"d":239.22,"v":407.0,"x":684.9,"y":109.4},{"d":241.81,"v":399.5,"x":691.5,"y":112.1},{"d":243.86,"v":392.7,"x":696.7,"y":114.5},{"d":244.89,"v":386.3,"x":699.3,"y":116.9},{"d":245.33,"v":379.9,"x":700.4,"y":119.3},{"d":247.0,"v":372.8,"x":704.6,"y":122.0},{"d":248.41,"v":398.2,"x":708.2,"y":112.6},{"d":248.83,"v":417.9,"x":709.3,"y":105.6},{"d":250.07,"v":410.6,"x":712.4,"y":108.2},{"d":250.71,"v":403.6,"x":714.1,"y":110.6},{"d":252.74,"v":396.3,"x":719.2,"y":113.2},{"d":254.01,"v":388.8,"x":722.4,"y":116.0},{"d":255.37,"v":381.8,"x":725.9,"y":118.6},{"d":257.96,"v":374.3,"x":732.4,"y":121.4},{"d":259.98,"v":367.2,"x":737.6,"y":124.2},{"d":260.44,"v":360.5,"x":738.7,"y":126.8},{"d":261.42,"v":353.1,"x":741.2,"y":129.8},{"d":261.84,"v":346.1,"x":742.3,"y":132.7},{"d":263.01,"v":340.1,"x":745.2,"y":135.2},{"d":264.09,"v":367.6,"x":748.0,"y":124.0},{"d":266.09,"v":360.3,"x":753.1,"y":126.9},{"d":268.14,"v":353.2,"x":758.3,"y":129.8},{"d":269.89,"v":346.6,"x":762.7,"y":132.5},{"d":271.87,"v":339.6,"x":767.7,"y":135.4},{"d":274.22,"v":364.9,"x":773.7,"y":125.1},{"d":276.72,"v":357.5,"x":780.0,"y":128.0},{"d":277.26,"v":350.7,"x":781.4,"y":130.8},{"d":277.88,"v":367.2,"x":783.0,"y":124.2},{"d":280.14,"v":359.9,"x":788.7,"y":127.1},{"d":280.85,"v":353.4,"x":790.5,"y":129.7},{"d":282.98,"v":346.2,"x":795.9,"y":132.6},{"d":283.73,"v":367.0,"x":797.8,"y":124.3},{"d":286.4,"v":360.9,"x":804.6,"y":126.7},{"d":288.78,"v":354.8,"x":810.6,"y":129.1},{"d":289.29,"v":381.0,"x":811.9,"y":118.9},{"d":290.4,"v":373.2,"x":814.7,"y":121.9},{"d":293.14,"v":398.5,"x":821.7,"y":112.4},{"d":295.13,"v":417.8,"x":826.7,"y":105.6},{"d":297.68,"v":409.4,"x":833.2,"y":108.6},{"d":299.37,"v":442.8,"x":837.5,"y":97.3},{"d":301.21,"v":434.3,"x":842.2,"y":100.1},{"d":302.8,"v":426.9,"x":846.2,"y":102.6},{"d":304.18,"v":419.7,"x":849.7,"y":105.0},{"d":306.88,"v":442.9,"x":856.5,"y":97.3},{"d":308.32,"v":465.4,"x":860.2,"y":90.2},{"d":310.0,"v":456.0,"x":864.5,"y":93.1},{"d":311.76,"v":480.2,"x":868.9,"y":85.7},{"d":312.05,"v":471.1,"x":869.7,"y":88.4},{"d":313.76,"v":502.9,"x":874.0,"y":79.0},{"d":314.41,"v":536.6,"x":875.7,"y":69.7},{"d":314.74,"v":526.2,"x":876.5,"y":72.5},{"d":315.15,"v":515.7,"x":877.5,"y":75.4},{"d":317.86,"v":505.6,"x":884.4,"y":78.3},{"d":318.41,"v":495.8,"x":885.8,"y":81.1},{"d":319.66,"v":487.5,"x":889.0,"y":83.5},{"d":320.37,"v":516.7,"x":890.8,"y":75.1},{"d":322.18,"v":555.5,"x":895.4,"y":64.8},{"d":324.08,"v":544.4,"x":900.2,"y":67.7},{"d":324.81,"v":534.4,"x":902.0,"y":70.3},{"d":326.68,"v":523.4,"x":906.8,"y":73.3},{"d":328.65,"v":513.8,"x":911.8,"y":76.0},{"d":329.47,"v":540.2,"x":913.9,"y":68.8},{"d":330.26,"v":529.3,"x":915.9,"y":71.7},{"d":332.82,"v":520.8,"x":922.4,"y":74.0},{"d":335.14,"v":510.3,"x":928.3,"y":76.9},{"d":337.68,"v":549.6,"x":934.7,"y":66.3},{"d":338.44,"v":540.5,"x":936.6,"y":68.7},{"d":339.85,"v":572.4,"x":940.2,"y":60.4},{"d":342.36,"v":562.9,"x":946.6,"y":62.9},{"d":343.3,"v":553.7,"x":949.0,"y":65.2},{"d":344.55,"v":543.7,"x":952.1,"y":67.8},{"d":345.91,"v":588.5,"x":955.6,"y":56.5},{"d":348.2,"v":578.9,"x":961.4,"y":58.8},{"d":349.99,"v":607.8,"x":965.9,"y":51.8},{"d":352.69,"v":595.5,"x":972.8,"y":54.8},{"d":353.02,"v":585.4,"x":973.6,"y":57.2},{"d":354.66,"v":573.9,"x":977.8,"y":60.1},{"d":355.25,"v":563.1,"x":979.3,"y":62.8},{"d":357.56,"v":552.6,"x":985.1,"y":65.5},{"d":359.28,"v":543.4,"x":989.5,"y":67.9},{"d":361.73,"v":533.0,"x":995.7,"y":70.7},{"d":362.27,"v":523.8,"x":997.1,"y":73.2},{"d":363.38,"v":547.9,"x":999.9,"y":66.7}];
+  var hit   = document.getElementById("hit");
+  var cross = document.getElementById("cross");
+  var dot   = document.getElementById("crossdot");
+  var last  = DATA[DATA.length - 1];
+
+  function roLabels(){
+    return lang === "ar"
+      ? [AR["js.roIndex"], AR["js.roDay"]]
+      : ["Index", "Day"];
+  }
+  function paint(p, show){
+    var v = document.getElementById("ro-v");
+    var d = document.getElementById("ro-d");
+    if (v) v.textContent = p.v.toFixed(0);
+    if (d) d.textContent = Math.round(p.d);
+    if (cross) cross.style.opacity = show ? ".55" : "0";
+    if (dot)   dot.style.opacity   = show ? "1" : "0";
+  }
+  function resetReadout(){ paint(last, false); }
+
+  if (hit && cross && dot && DATA.length) {
+    var svg = hit.ownerSVGElement;
+    var move = function(evt){
+      var r  = svg.getBoundingClientRect();
+      var cx = evt.touches ? evt.touches[0].clientX : evt.clientX;
+      var x  = (cx - r.left) / r.width * 1040;
+      var best = DATA[0], bd = Infinity;
+      for (var i = 0; i < DATA.length; i++){
+        var dd = Math.abs(DATA[i].x - x);
+        if (dd < bd){ bd = dd; best = DATA[i]; }
+      }
+      cross.setAttribute("x1", best.x);
+      cross.setAttribute("x2", best.x);
+      dot.setAttribute("cx", best.x);
+      dot.setAttribute("cy", best.y);
+      paint(best, true);
+    };
+    hit.addEventListener("mousemove", move);
+    hit.addEventListener("mouseleave", resetReadout);
+    hit.addEventListener("touchmove", move, {passive:true});
+    hit.addEventListener("touchend", resetReadout);
+  }
+
+  /* ---- initial language: ?lang=ar, else browser preference ---- */
+  ORIG.clear();
+  document.querySelectorAll("[data-i18n]").forEach(function(el){
+    ORIG.set(el, el.namespaceURI === SVG_NS ? el.textContent : el.innerHTML);
+  });
+  var start = "en";
+  try {
+    var q = new URL(window.location.href).searchParams.get("lang");
+    if (q === "ar" || q === "en") start = q;
+    else if ((navigator.language || "").toLowerCase().indexOf("ar") === 0) start = "ar";
+  } catch(e){}
+  setLang(start);
+})();
+</script>
+</body>
+</html>
