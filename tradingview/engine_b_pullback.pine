@@ -1,0 +1,59 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0
+// Two-Engine System -- Engine B: buy the panic inside an uptrend
+// Markets: SPX500 / US500, NAS100, US30, GER40   Timeframe: 1D (4H to experiment)
+// Educational / research use. Not financial advice.
+//@version=6
+strategy("Two-Engine B: Pullback Reversion", shorttitle = "2E-B Pullback", overlay = true,
+     initial_capital = 10000, pyramiding = 0, slippage = 2,
+     margin_long = 5, margin_short = 5, calc_on_every_tick = false)
+
+// ---------- inputs ----------
+grpS = "Signal"
+rsiLen   = input.int(2, "RSI length", minval = 2, group = grpS)
+entryLvl = input.float(10, "Buy when RSI below", minval = 1, maxval = 40, group = grpS)
+trendLen = input.int(200, "Uptrend filter: close above SMA", minval = 20, group = grpS)
+exitLen  = input.int(5, "Exit when close above SMA", minval = 2, group = grpS)
+allowShort = input.bool(false, "Allow mirror-image shorts (not recommended on indices)", group = grpS)
+
+grpR = "Risk"
+atrLen   = input.int(14, "ATR length", minval = 2, group = grpR)
+stopMult = input.float(3.0, "Disaster stop (x ATR)", minval = 0.5, step = 0.25, group = grpR)
+maxBars  = input.int(10, "Time stop (bars held)", minval = 1, group = grpR)
+riskPct  = input.float(1.0, "Risk per trade (% of equity)", minval = 0.1, maxval = 3, step = 0.1, group = grpR)
+maxDD    = input.float(25.0, "Halt strategy at drawdown (%)", minval = 5, maxval = 90, group = grpR)
+
+strategy.risk.max_drawdown(maxDD, strategy.percent_of_equity)
+
+// ---------- calculations ----------
+r     = ta.rsi(close, rsiLen)
+slow  = ta.sma(close, trendLen)
+fast  = ta.sma(close, exitLen)
+atr   = ta.atr(atrLen)
+
+longSig  = close > slow and r < entryLvl
+shortSig = allowShort and close < slow and r > 100 - entryLvl
+
+qtyFor(float dist) =>
+    dist > 0 ? strategy.equity * riskPct / 100 / (dist * syminfo.pointvalue) : 0.0
+
+// ---------- orders ----------
+if strategy.position_size == 0 and barstate.isconfirmed
+    d = stopMult * atr
+    if longSig
+        strategy.entry("L", strategy.long, qty = qtyFor(d))
+        strategy.exit("L-stop", from_entry = "L", stop = close - d)
+    else if shortSig
+        strategy.entry("S", strategy.short, qty = qtyFor(d))
+        strategy.exit("S-stop", from_entry = "S", stop = close + d)
+
+barsHeld = strategy.opentrades > 0 ? bar_index - strategy.opentrades.entry_bar_index(0) + 1 : 0
+
+if strategy.position_size > 0 and (close > fast or barsHeld >= maxBars)
+    strategy.close("L", comment = close > fast ? "snap-back" : "time")
+if strategy.position_size < 0 and (close < fast or barsHeld >= maxBars)
+    strategy.close("S", comment = close < fast ? "snap-back" : "time")
+
+// ---------- visuals ----------
+plot(slow, "Uptrend SMA", color = color.new(color.gray, 20), linewidth = 2)
+plot(fast, "Exit SMA", color = color.new(color.teal, 30))
+plotshape(longSig and strategy.position_size == 0, "Buy setup", shape.triangleup, location.belowbar, color.new(color.teal, 0), size = size.tiny)
