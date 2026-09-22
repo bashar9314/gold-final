@@ -17,7 +17,8 @@ _ALIASES = {
 
 def load_csv(path, point=0.01):
     """Load an OHLC CSV. Handles MT5 'Export bars' files (tab separated,
-    <DATE> <TIME> <OPEN> ... <SPREAD>) and plain date,open,high,low,close files.
+    <DATE> <TIME> <OPEN> ... <SPREAD>), TradingView 'Export chart data' files
+    (time as unix seconds or ISO) and plain date,open,high,low,close files.
 
     `point` converts MT5's integer spread column into price units
     (XAUUSD on most brokers: 0.01; EURUSD: 0.00001).
@@ -30,6 +31,11 @@ def load_csv(path, point=0.01):
         idx = pd.to_datetime(df["datetime"])
     elif "date" in df.columns:
         idx = pd.to_datetime(df["date"])
+    elif "time" in df.columns:                     # TradingView "Export chart data"
+        t = df["time"]
+        idx = (pd.to_datetime(t, unit="s", utc=True).dt.tz_localize(None)
+               if pd.api.types.is_numeric_dtype(t)
+               else pd.to_datetime(t, utc=True).dt.tz_localize(None))
     else:
         raise ValueError("CSV needs a date/datetime column")
     out = df[["open", "high", "low", "close"]].astype(float)

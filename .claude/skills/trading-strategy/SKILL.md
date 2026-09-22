@@ -5,7 +5,7 @@ description: Design, backtest and validate trading strategies honestly with the 
 
 # Trading strategy skill
 
-The toolkit lives in `strategy-lab/`. Read `strategy-lab/STRATEGY.md` for the playbook.
+The toolkit lives in `strategy-lab/`. Read `strategy-lab/STRATEGY.md` for the playbook and `tradingview/README.md` for the Two-Engine System (Engine A trend on XAUUSD/FX/oil/BTC 4H, Engine B pullback on indices 1D), its Pine scripts and the thesis framing. Keep the Pine scripts and `lab/strategies.py` rules in sync.
 
 ## Principles (non-negotiable)
 

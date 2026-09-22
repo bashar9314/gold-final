@@ -2,7 +2,7 @@
 
 A small, dependency-light toolkit (numpy + pandas) that tests trading strategies **honestly**. It fills every signal at the next bar's open, charges the real spread, assumes the stop fills first when a bar touches both stop and target, picks parameters by walk-forward on data the test period never saw, runs Monte Carlo on the trade sequence, and ends with a pass/fail verdict.
 
-Read **[STRATEGY.md](STRATEGY.md)** first. It covers what the strategy is, what it can and can't do, and the steps to follow before risking money.
+Read **[STRATEGY.md](STRATEGY.md)** first. The full two-engine system, TradingView scripts and the market list are in **[../tradingview/](../tradingview/README.md)**. It covers what the strategy is, what it can and can't do, and the steps to follow before risking money.
 
 ## Install
 
@@ -15,7 +15,7 @@ pip install -r requirements.txt
 
 ```bash
 python run.py math        # why "profit every day" and "90% win rate" are traps (numbers, not opinions)
-python run.py demo        # both strategies on random data: 89% win rate, still losing
+python run.py demo        # all strategies on random data: the 89% win-rate trap still loses
 python run.py validate --csv XAUUSD_H1.csv                 # full walk-forward + verdict
 python run.py portfolio --csv XAUUSD_H1.csv US500_H1.csv EURUSD_H1.csv USDJPY_H1.csv
 python run.py backtest --csv XAUUSD_H1.csv --param entry_n=55 stop_atr=2 --trades-out trades.csv
@@ -31,7 +31,7 @@ Options: `--risk 0.005` (fraction of equity per trade), `--spread 0.30` (fixed s
 |---|---|
 | `lab/data.py` | CSV loader (MT5 or generic) and a no-edge random-walk generator |
 | `lab/indicators.py` | ATR, EMA, Donchian, RSI, with no look-ahead |
-| `lab/strategies.py` | `trend_breakout` (the strategy) and `high_winrate_trap` (the counter-example) |
+| `lab/strategies.py` | `trend_breakout` (Engine A), `pullback_reversion` (Engine B), `high_winrate_trap` (the counter-example) |
 | `lab/backtest.py` | conservative bar-by-bar engine with risk-% sizing |
 | `lab/metrics.py` | expectancy, profit factor, drawdown, Sharpe, % green days/months |
 | `lab/validate.py` | parameter sweep, plateau scoring, walk-forward, Monte Carlo |

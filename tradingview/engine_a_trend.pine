@@ -1,0 +1,84 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0
+// Two-Engine System -- Engine A: volatility-sized trend breakout
+// Markets: XAUUSD, USDJPY, EURUSD, AUDUSD, USOIL, BTCUSD   Timeframe: 4H (or 1D)
+// Educational / research use. Not financial advice.
+//@version=6
+strategy("Two-Engine A: Trend Breakout", shorttitle = "2E-A Trend", overlay = true,
+     initial_capital = 10000, pyramiding = 0, slippage = 2,
+     margin_long = 5, margin_short = 5, calc_on_every_tick = false)
+
+// ---------- inputs ----------
+grpS = "Signal"
+entryLen  = input.int(55, "Breakout length (bars)", minval = 5, group = grpS)
+trendLen  = input.int(200, "Trend EMA length", minval = 20, group = grpS)
+erLen     = input.int(20, "Efficiency-ratio length", minval = 5, group = grpS)
+erMin     = input.float(0.0, "Min efficiency ratio (0 = filter off)", minval = 0, maxval = 1, step = 0.05, group = grpS)
+allowShort = input.bool(true, "Allow shorts", group = grpS)
+
+grpR = "Risk"
+atrLen    = input.int(20, "ATR length", minval = 2, group = grpR)
+stopMult  = input.float(2.0, "Initial stop (x ATR)", minval = 0.5, step = 0.25, group = grpR)
+trailMult = input.float(3.0, "Trailing stop (x ATR)", minval = 0.5, step = 0.25, group = grpR)
+riskPct   = input.float(1.0, "Risk per trade (% of equity)", minval = 0.1, maxval = 3, step = 0.1, group = grpR)
+maxDD     = input.float(25.0, "Halt strategy at drawdown (%)", minval = 5, maxval = 90, group = grpR)
+
+grpT = "Timing"
+useSess   = input.bool(false, "Only enter inside session", group = grpT)
+sess      = input.session("0700-1900", "Entry session (exchange time)", group = grpT)
+
+strategy.risk.max_drawdown(maxDD, strategy.percent_of_equity)
+
+// ---------- calculations (closed-bar values only) ----------
+atr   = ta.atr(atrLen)
+trend = ta.ema(close, trendLen)
+upper = ta.highest(high, entryLen)[1]
+lower = ta.lowest(low, entryLen)[1]
+
+netMove = math.abs(close - close[erLen])
+path    = math.sum(math.abs(close - close[1]), erLen)
+er      = path > 0 ? netMove / path : 0.0
+
+inSess   = not useSess or not na(time(timeframe.period, sess))
+regimeOK = erMin <= 0 or er >= erMin
+
+longSig  = close > upper and close > trend and regimeOK and inSess
+shortSig = allowShort and close < lower and close < trend and regimeOK and inSess
+
+// position size so that hitting the initial stop loses riskPct of equity
+qtyFor(float dist) =>
+    dist > 0 ? strategy.equity * riskPct / 100 / (dist * syminfo.pointvalue) : 0.0
+
+// ---------- orders ----------
+var float trail = na
+var float best  = na
+
+if strategy.position_size == 0 and barstate.isconfirmed
+    if longSig
+        d = stopMult * atr
+        best  := close
+        trail := close - d
+        strategy.entry("L", strategy.long, qty = qtyFor(d))
+        strategy.exit("L-stop", from_entry = "L", stop = trail)
+    else if shortSig
+        d = stopMult * atr
+        best  := close
+        trail := close + d
+        strategy.entry("S", strategy.short, qty = qtyFor(d))
+        strategy.exit("S-stop", from_entry = "S", stop = trail)
+
+// chandelier trail: ratchets only in the trade's favour
+if strategy.position_size > 0
+    best  := math.max(best, high)
+    trail := math.max(trail, best - trailMult * atr)
+    strategy.exit("L-stop", from_entry = "L", stop = trail)
+else if strategy.position_size < 0
+    best  := math.min(best, low)
+    trail := math.min(trail, best + trailMult * atr)
+    strategy.exit("S-stop", from_entry = "S", stop = trail)
+
+// ---------- visuals ----------
+plot(trend, "Trend EMA", color = color.new(color.gray, 20), linewidth = 2)
+plot(upper, "Breakout high", color = color.new(color.teal, 55))
+plot(lower, "Breakout low", color = color.new(color.maroon, 55))
+plot(strategy.position_size != 0 ? trail : na, "Stop", color = color.orange, style = plot.style_linebr, linewidth = 2)
+bgcolor(erMin > 0 and not regimeOK ? color.new(color.gray, 92) : na, title = "Chop (no entries)")

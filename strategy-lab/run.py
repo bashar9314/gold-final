@@ -68,7 +68,7 @@ def cmd_demo(_):
     df = data.random_walk(n=30_000, seed=7)
     print("\nSynthetic RANDOM WALK -- no edge exists in this data by construction.")
     print("Anything that 'makes money' here is luck; anything that loses is paying costs.\n")
-    for name in ("trend_breakout", "high_winrate_trap"):
+    for name in ("trend_breakout", "pullback_reversion", "high_winrate_trap"):
         res = backtest.run(df, STRATEGIES[name](df), risk_pct=0.01)
         print(f"-- {name}")
         print(metrics.fmt(metrics.summary(res)))

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from lab import backtest, data, riskmath, validate
-from lab.strategies import PARAM_GRIDS, high_winrate_trap, trend_breakout
+from lab.strategies import PARAM_GRIDS, STRATEGIES, high_winrate_trap, trend_breakout
 
 
 def _bars(prices, spread=0.0):
@@ -58,6 +58,21 @@ class Engine(unittest.TestCase):
         self.assertAlmostEqual(t.exit.iloc[0], 80.0)
         self.assertLess(t.r.iloc[0], -3.9)
 
+    def test_signal_exit_fills_next_open(self):
+        df = _bars([100, 100, 103, 107, 108])
+        sig = _one_signal(df, 1, stop=50)
+        sig["exit_long"] = [False, False, True, False, False]   # decided on bar 2 close
+        t = backtest.run(df, sig).trades
+        self.assertEqual(t.reason.iloc[0], "signal")
+        self.assertAlmostEqual(t.exit.iloc[0], 107.0)            # bar 3 open
+
+    def test_time_stop(self):
+        df = _bars([100] * 10)
+        sig = _one_signal(df, 1, stop=50).assign(max_bars=3)
+        t = backtest.run(df, sig).trades
+        self.assertEqual(t.reason.iloc[0], "time")
+        self.assertEqual(t.exit_time.iloc[0], df.index[4])       # entered bar 1, held 3
+
     def test_risk_sizing(self):
         df = _bars([100, 100, 100])
         df.loc[df.index[2], "low"] = 90
@@ -75,8 +90,32 @@ class Validation(unittest.TestCase):
 
     def test_grids_are_valid(self):
         df = data.random_walk(n=500)
-        for k, v in PARAM_GRIDS["trend_breakout"].items():
-            trend_breakout(df, **{k: v[0]})
+        for name, grid in PARAM_GRIDS.items():
+            for k, v in grid.items():
+                STRATEGIES[name](df, **{k: v[0]})
+
+    def test_no_lookahead_all_strategies(self):
+        df = data.random_walk(n=3000, seed=8)
+        cut = df.iloc[:2000]
+        for name, f in STRATEGIES.items():
+            full = backtest.run(df, f(df)).trades
+            part = backtest.run(cut, f(cut)).trades
+            end = cut.index[-2]
+            pd.testing.assert_frame_equal(full[full.exit_time < end].reset_index(drop=True),
+                                          part[part.exit_time < end].reset_index(drop=True),
+                                          obj=name)
+
+
+class Data(unittest.TestCase):
+    def test_tradingview_export(self):
+        import os, tempfile
+        path = os.path.join(tempfile.mkdtemp(), "tv.csv")
+        with open(path, "w") as f:
+            f.write("time,open,high,low,close,Volume\n1704067200,1,2,0.5,1.5,10\n"
+                    "1704070800,1.5,2,1,1.8,12\n")
+        df = data.load_csv(path)
+        self.assertEqual(str(df.index[0]), "2024-01-01 00:00:00")
+        self.assertEqual(list(df.columns), ["open", "high", "low", "close"])
 
 
 class RiskMath(unittest.TestCase):

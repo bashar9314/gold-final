@@ -27,3 +27,14 @@ def rsi(s, n=2):
     up = d.clip(lower=0).ewm(alpha=1.0 / n, adjust=False, min_periods=n).mean()
     dn = (-d.clip(upper=0)).ewm(alpha=1.0 / n, adjust=False, min_periods=n).mean()
     return 100 - 100 / (1 + up / dn.replace(0, np.nan))
+
+
+def sma(s, n):
+    return s.rolling(n).mean()
+
+
+def efficiency_ratio(s, n=20):
+    """Kaufman efficiency ratio: net move / total path over n bars.
+    Near 1 = clean trend, near 0 = choppy noise."""
+    path = s.diff().abs().rolling(n).sum()
+    return (s - s.shift(n)).abs() / path.replace(0, np.nan)
