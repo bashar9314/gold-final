@@ -106,6 +106,49 @@
         "blur": "data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAADwAwCdASoYAA0APu1orU2ppqSiMAgBMB2JZQCo9BukShEOy5nD/bLAAP7danCCIS5YCnJHQuY33vmfvTUs4cH2+s7O1+lN6LRx+fckG7TcMqSHcfmF+R2AAAA="
       },
       "caption": ""
+    },
+    {
+      "before": {
+        "id": "before-3",
+        "width": 1408,
+        "height": 768,
+        "srcs": [
+          {
+            "src": "/photos/before-3-480.webp",
+            "width": 480
+          },
+          {
+            "src": "/photos/before-3-800.webp",
+            "width": 800
+          },
+          {
+            "src": "/photos/before-3-1280.webp",
+            "width": 1280
+          }
+        ],
+        "blur": "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAAAQBACdASoYAA0APu1kqk2ppaQiMAgBMB2JZwDE2Bop6pw59SWz/sd5AAD+4eT45leIGgz48M3XnOtnwLqNj51rJrDV80o525OTHUXVDlcEC3qxf4ULeIAA"
+      },
+      "after": {
+        "id": "after-3",
+        "width": 1408,
+        "height": 768,
+        "srcs": [
+          {
+            "src": "/photos/after-3-480.webp",
+            "width": 480
+          },
+          {
+            "src": "/photos/after-3-800.webp",
+            "width": 800
+          },
+          {
+            "src": "/photos/after-3-1280.webp",
+            "width": 1280
+          }
+        ],
+        "blur": "data:image/webp;base64,UklGRl4AAABXRUJQVlA4IFIAAABwAwCdASoYAA0APu1Ct1apoqakGAEwHYlnAAA+GOvNe4JLhAAA/uf8PRdVwVD1SCECraEAffPqdlkR9NMnhNo+xjOnr22w07sxBRr3DzzF4EAA"
+      },
+      "caption": ""
     }
   ],
   "gallery": []
