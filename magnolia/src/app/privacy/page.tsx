@@ -11,7 +11,7 @@ export default function Privacy() {
       <h2>How we use it</h2>
       <p>We use this information only to respond to your request, prepare a quote, and schedule work. We do not sell your information.</p>
       <h2>Contact</h2>
-      <p>Questions about this policy: magnoliapostwork@gmail.com.</p>
+      <p>Questions about this policy: magnoliaconstructioncleans@gmail.com.</p>
       <p>Last updated: September 29, 2026</p>
     </LegalPage>
   );

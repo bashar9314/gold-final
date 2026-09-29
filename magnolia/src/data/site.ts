@@ -8,7 +8,7 @@ export const site = {
   short: 'Magnolia Construction Cleaning',
   url: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.example.com', // TODO: real domain
   phone: '(662) 318-4048',
-  email: 'magnoliapostwork@gmail.com',
+  email: 'magnoliaconstructioncleans@gmail.com',
   hours: 'Monday – Sunday, 8:00 AM – 8:00 PM',
   serviceArea: 'Southaven, Mississippi and surrounding communities within a 40-mile radius',
   // Only set true once you have CONFIRMED these areas. Drives SEO copy + schema.

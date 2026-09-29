@@ -11,7 +11,7 @@ export default function Terms() {
       <h2>Website content</h2>
       <p>All logos, photographs, and text on this site belong to Magnolia Construction Cleaning LLC and may not be reused without permission.</p>
       <h2>Contact</h2>
-      <p>magnoliapostwork@gmail.com</p>
+      <p>magnoliaconstructioncleans@gmail.com</p>
       <p>Last updated: September 29, 2026</p>
     </LegalPage>
   );
