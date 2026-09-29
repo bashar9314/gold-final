@@ -1,0 +1,96 @@
+@import '@fontsource/cormorant-garamond/latin-400.css';
+@import '@fontsource/cormorant-garamond/latin-500.css';
+@import '@fontsource/cormorant-garamond/latin-600.css';
+@import '@fontsource/cormorant-garamond/latin-500-italic.css';
+@import '@fontsource-variable/inter/wght.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --nav-h: 72px;
+}
+
+html { scroll-behavior: smooth; scroll-padding-top: 76px; -webkit-text-size-adjust: 100%; }
+body { @apply bg-ivory text-charcoal font-sans antialiased; font-size: 16px; line-height: 1.65; overflow-x: clip; }
+::selection { background: #C9A96A55; }
+:focus-visible { outline: 2px solid #A8864E; outline-offset: 3px; }
+img { max-width: 100%; height: auto; }
+
+@layer components {
+  .container-x { @apply mx-auto w-full max-w-[1240px] px-5 sm:px-8 lg:px-12; }
+  .eyebrow { @apply font-sans text-[11px] font-medium uppercase tracking-[0.28em] text-gold; }
+  .eyebrow-line::before { content: ''; display: inline-block; width: 36px; height: 1px; background: currentColor; vertical-align: middle; margin-right: 14px; opacity: .8; }
+  .h-display { @apply font-serif font-medium tracking-tight text-forest; line-height: 1.02; }
+  .h-section { @apply font-serif font-medium text-forest; font-size: clamp(2.3rem, 5.4vw, 4rem); line-height: 1.04; letter-spacing: -0.01em; }
+  .lead { @apply text-[17px] leading-relaxed text-charcoal/75 sm:text-lg; }
+  .gold-rule { height: 1px; background: linear-gradient(90deg, #A8864E, #A8864E00); }
+
+  .btn { @apply relative inline-flex min-h-[52px] items-center justify-center gap-3 overflow-hidden px-7 text-[12px] font-semibold uppercase tracking-[0.2em] transition-colors duration-300; -webkit-tap-highlight-color: transparent; }
+  .btn > span { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: .75rem; }
+  .btn::before { content: ''; position: absolute; inset: 0; transform: translateY(101%); transition: transform .45s var(--ease); }
+  .btn:hover::before, .btn:focus-visible::before { transform: translateY(0); }
+  .btn .arrow { transition: transform .35s var(--ease); }
+  .btn:hover .arrow { transform: translateX(5px); }
+  .btn:active { transform: scale(.985); }
+  .btn-gold { @apply bg-gold text-forest-deep; }
+  .btn-gold::before { background: #F7F4E8; }
+  .btn-forest { @apply bg-forest text-ivory; }
+  .btn-forest::before { background: #A8864E; }
+  .btn-forest:hover { color: #132A20; }
+  .btn-line-light { @apply border border-ivory/40 text-ivory; }
+  .btn-line-light::before { background: #F7F4E8; }
+  .btn-line-light:hover { color: #1F3A2E; }
+  .btn-line-dark { @apply border border-forest/35 text-forest; }
+  .btn-line-dark::before { background: #1F3A2E; }
+  .btn-line-dark:hover { color: #F7F4E8; }
+
+  .field { @apply block w-full border-0 border-b border-forest/25 bg-transparent px-0 py-3 text-[16px] text-charcoal placeholder:text-stone/70 transition-colors focus:border-gold focus:outline-none focus:ring-0; border-radius: 0; }
+  .label { @apply mb-1 block text-[11px] font-medium uppercase tracking-[0.2em] text-forest/70; }
+}
+
+/* ---------- scroll reveal (only when JS is present, so content never stays hidden) ---------- */
+.js .rv { opacity: 0; transform: translateY(26px); transition: opacity .9s var(--ease), transform .9s var(--ease); transition-delay: var(--d, 0ms); will-change: opacity, transform; }
+.js .rv.in { opacity: 1; transform: none; }
+.js .rv-img { clip-path: inset(0 0 100% 0); transition: clip-path 1.2s var(--ease); transition-delay: var(--d, 0ms); }
+.js .rv-img.in { clip-path: inset(0 0 0 0); }
+.js .rv-line { transform: scaleX(0); transform-origin: left; transition: transform 1.2s var(--ease); transition-delay: var(--d, 0ms); }
+.js .rv-line.in { transform: scaleX(1); }
+
+/* hero text mask reveal */
+.mask { display: block; overflow: hidden; padding-bottom: .12em; margin-bottom: -.12em; }
+.mask > span { display: block; transform: translateY(105%); animation: rise 1.1s var(--ease) forwards; animation-delay: var(--d, 0ms); }
+@keyframes rise { to { transform: none; } }
+.fade-in { opacity: 0; animation: fade 1s var(--ease) forwards; animation-delay: var(--d, 0ms); }
+@keyframes fade { to { opacity: 1; } }
+.draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 2.6s var(--ease) forwards; animation-delay: var(--d, 0ms); }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.twinkle { animation: twinkle 4.5s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes twinkle { 0%,100% { opacity: .35; transform: scale(.85);} 50% { opacity: 1; transform: scale(1);} }
+.scroll-cue::after { content: ''; display: block; width: 1px; height: 44px; margin: 10px auto 0; background: linear-gradient(#C9A96A, transparent); animation: cue 2.2s ease-in-out infinite; transform-origin: top; }
+@keyframes cue { 0% { transform: scaleY(0);} 50% { transform: scaleY(1);} 100% { transform: scaleY(1); opacity: 0; } }
+
+/* before/after */
+.ba { touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize; }
+.ba .ba-before { clip-path: inset(0 calc(100% - var(--pos, 50%)) 0 0); }
+.ba .ba-handle { left: var(--pos, 50%); }
+.ba.settle .ba-before, .ba.settle .ba-handle { transition: clip-path .9s var(--ease), left .9s var(--ease); }
+.ba input[type=range] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: ew-resize; pointer-events: none; }
+.ba input[type=range]:focus-visible ~ .ba-handle .ba-knob { outline: 2px solid #F7F4E8; outline-offset: 4px; }
+
+/* lightbox */
+.lb-enter { animation: fade .35s var(--ease) forwards; opacity: 0; }
+
+/* footer/nav link underline */
+.ulink { background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size .4s var(--ease); }
+.ulink:hover, .ulink[aria-current=true] { background-size: 100% 1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0ms !important; }
+  .js .rv, .js .rv-img, .js .rv-line { opacity: 1; transform: none; clip-path: none; }
+  .mask > span { transform: none; }
+  .fade-in { opacity: 1; }
+  .draw { stroke-dashoffset: 0; }
+}
