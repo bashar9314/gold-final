@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { site } from '@/data/site';
 
-const where = site.serviceAreaConfirmed ? ` in ${site.serviceAreas.join(', ')}` : '';
+const where = site.serviceAreaConfirmed ? ` serving Southaven, Mississippi and communities within 40 miles` : '';
 const title = `Post-Construction Cleaning${site.serviceAreaConfirmed ? ` in ${site.serviceAreas[0]}` : ''} | Magnolia Construction Cleaning`;
 const description = `Magnolia Construction Cleaning LLC provides professional post-construction, rough, final, and move-in ready cleaning${where}. From construction dust to move-in ready. Request a free quote.`;
 
@@ -32,7 +32,10 @@ const schema = {
   // Only emitted once real facts are entered in src/data/site.ts. Nothing is invented.
   ...(site.phone && { telephone: site.phone }),
   ...(site.email && { email: site.email }),
-  ...(site.serviceAreaConfirmed && { areaServed: site.serviceAreas.map((a) => ({ '@type': 'Place', name: a })) }),
+  ...(site.serviceAreaConfirmed && {
+    areaServed: { '@type': 'GeoCircle', geoMidpoint: { '@type': 'GeoCoordinates', latitude: site.geo.lat, longitude: site.geo.lng }, geoRadius: site.geo.radiusMeters },
+  }),
+  ...(site.hours && { openingHoursSpecification: [{ '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], opens: '08:00', closes: '20:00' }] }),
   makesOffer: ['Post-Construction Cleaning', 'Final Construction Clean', 'Rough Clean', 'Final Clean', 'Renovation & Remodel Cleaning', 'Move-In Ready Cleaning']
     .map((n) => ({ '@type': 'Offer', itemOffered: { '@type': 'Service', name: n } })),
 };

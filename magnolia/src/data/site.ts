@@ -7,13 +7,14 @@ export const site = {
   name: 'Magnolia Construction Cleaning LLC',
   short: 'Magnolia Construction Cleaning',
   url: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.example.com', // TODO: real domain
-  phone: '',          // e.g. '(901) 555-0123'
-  email: '',          // e.g. 'hello@yourdomain.com'
-  hours: '',          // e.g. 'Mon–Fri, 7am–6pm'
-  serviceArea: '',    // e.g. 'Memphis, TN and surrounding areas'
+  phone: '(662) 318-4048',
+  email: 'magnoliapostwork@gmail.com',
+  hours: 'Monday – Sunday, 8:00 AM – 8:00 PM',
+  serviceArea: 'Southaven, Mississippi and surrounding communities within a 40-mile radius',
   // Only set true once you have CONFIRMED these areas. Drives SEO copy + schema.
-  serviceAreaConfirmed: false,
-  serviceAreas: ['Memphis, Tennessee', 'Southaven, Mississippi', 'the Mid-South'],
+  serviceAreaConfirmed: true,
+  serviceAreas: ['Southaven, Mississippi'], // confirmed: 40-mile radius from Southaven
+  geo: { lat: 34.9889, lng: -90.0126, radiusMeters: 64374 },
   social: { instagram: '', facebook: '', linkedin: '' } as Record<string, string>,
   // Where the quote form posts (Formspree / Netlify Forms / your API). See README.
   formEndpoint: process.env.NEXT_PUBLIC_FORM_ENDPOINT || '',
