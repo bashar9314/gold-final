@@ -2,7 +2,7 @@
  * Photo pipeline.
  * Drop originals into /photos-inbox using these names (jpg/jpeg/png/webp/heic-converted):
  *   hero.jpg                 -> hero background
- *   uniform.jpg              -> uniform mockup
+ *   team.jpg (or uniform.jpg) -> team / uniform photo
  *   before-1.jpg, after-1.jpg (pairs 1..N)   -> before/after sliders (optional: pair-1.txt = caption)
  *   gallery-*.jpg            -> project gallery (optional prefix category-: e.g. gallery-final-kitchen.jpg)
  * Run `npm run photos` (also runs on `npm run build`).
@@ -39,14 +39,14 @@ async function process(file) {
   return { id: base, width: w, height: h, srcs, blur: `data:image/webp;base64,${buf.toString('base64')}` };
 }
 
-const out = { hero: null, uniform: null, pairs: [], gallery: [] };
+const out = { hero: null, team: null, pairs: [], gallery: [] };
 const byName = Object.fromEntries(files.map((f) => [path.parse(f).name.toLowerCase(), f]));
 
 const cache = {};
 const get = async (f) => (cache[f] ??= await process(f));
 
 if (byName.hero) out.hero = await get(byName.hero);
-if (byName.uniform) out.uniform = await get(byName.uniform);
+if (byName.team || byName.uniform) out.team = await get(byName.team || byName.uniform);
 
 for (let i = 1; i < 50; i++) {
   const b = byName[`before-${i}`], a = byName[`after-${i}`];
@@ -64,4 +64,4 @@ for (const f of files.filter((f) => /^gallery-/i.test(f)).sort()) {
 }
 
 fs.writeFileSync('src/data/photos.generated.json', JSON.stringify(out, null, 2));
-console.log(`photos: hero=${!!out.hero} uniform=${!!out.uniform} pairs=${out.pairs.length} gallery=${out.gallery.length}`);
+console.log(`photos: hero=${!!out.hero} team=${!!out.team} pairs=${out.pairs.length} gallery=${out.gallery.length}`);

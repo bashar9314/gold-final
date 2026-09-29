@@ -8,7 +8,7 @@ export type Pair = { before: Photo; after: Photo; caption: string };
 export type GalleryPhoto = Photo & { category: string };
 
 const data = raw as unknown as {
-  hero: Photo | null; uniform: Photo | null; pairs: Pair[]; gallery: GalleryPhoto[];
+  hero: Photo | null; team: Photo | null; pairs: Pair[]; gallery: GalleryPhoto[];
 };
 export const photos = data;
 

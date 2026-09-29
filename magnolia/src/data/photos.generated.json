@@ -19,7 +19,7 @@
     ],
     "blur": "data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAABwBACdASoYAA0APu1iqU2ppaOiMAgBMB2JQBOmUI7gA3SHSEm6NuDdbexXwAD+7JTi0xNuQEOlF+Ed59QT6fKGpCqbPjNKO4gcE/zywLrY9PM3aqNU9lLCSRARSwDF6k381gWQRpfiQAAA"
   },
-  "uniform": null,
+  "team": null,
   "pairs": [
     {
       "before": {
@@ -151,5 +151,91 @@
       "caption": ""
     }
   ],
-  "gallery": []
+  "gallery": [
+    {
+      "id": "gallery-final-kitchen",
+      "width": 825,
+      "height": 1024,
+      "srcs": [
+        {
+          "src": "/photos/gallery-final-kitchen-480.webp",
+          "width": 480
+        },
+        {
+          "src": "/photos/gallery-final-kitchen-800.webp",
+          "width": 800
+        }
+      ],
+      "blur": "data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAAAQBQCdASoYAB4APu1krE4ppaSiKA1RMB2JYwAAtHL7Jb7ytZLkcvHGlvKkDbyzyq4AAP7uSZ0qeH2uoyKaj4CVNADccj4OTI9YnEM8gn7pQb2nTzxn1dHvYh6dyDCS4yWN3Bd091q29QtNvrP9aXWk6HJtWsGHL+jHlCcXqAn2tZPjKPnpbFsHpbEORF75WYvvY9WAIouu88AA",
+      "category": "final"
+    },
+    {
+      "id": "gallery-post-construction-highrise",
+      "width": 1024,
+      "height": 687,
+      "srcs": [
+        {
+          "src": "/photos/gallery-post-construction-highrise-480.webp",
+          "width": 480
+        },
+        {
+          "src": "/photos/gallery-post-construction-highrise-800.webp",
+          "width": 800
+        }
+      ],
+      "blur": "data:image/webp;base64,UklGRloAAABXRUJQVlA4IE4AAADQAwCdASoYABAAPu1iqU2ppaOiMAgBMB2JZwDG9B6OuvIHVOoxKwAA/sW2xJC6kW3qtC7iImRYAXXn+H7EaaRvoiqCH0/D5/DF6U1NwAA=",
+      "category": "post-construction"
+    },
+    {
+      "id": "gallery-post-construction-storefront",
+      "width": 1024,
+      "height": 572,
+      "srcs": [
+        {
+          "src": "/photos/gallery-post-construction-storefront-480.webp",
+          "width": 480
+        },
+        {
+          "src": "/photos/gallery-post-construction-storefront-800.webp",
+          "width": 800
+        }
+      ],
+      "blur": "data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADwAwCdASoYAA0APu1kq04ppaQiMAgBMB2JZwDKAB4aT8FF8NasgeJgAP5eUmc7DbYhghBKzmwi9q2HEIVAijLDiKuF9bp2c5/gAA==",
+      "category": "post-construction"
+    },
+    {
+      "id": "gallery-rough-frame",
+      "width": 1024,
+      "height": 687,
+      "srcs": [
+        {
+          "src": "/photos/gallery-rough-frame-480.webp",
+          "width": 480
+        },
+        {
+          "src": "/photos/gallery-rough-frame-800.webp",
+          "width": 800
+        }
+      ],
+      "blur": "data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAAAQBACdASoYABAAPu1iqk2ppaQiMAgBMB2JZACdAB6/5GTiui18DGLmgAD6mutQ2sUrzgwfUOn7MTiLuglFem0l7aVgL4YC/rHUNIb6lXaEhKh7h/GnVPNxdUtAocVx732YMq+JAAA=",
+      "category": "rough"
+    },
+    {
+      "id": "gallery-rough-open-floor",
+      "width": 1024,
+      "height": 765,
+      "srcs": [
+        {
+          "src": "/photos/gallery-rough-open-floor-480.webp",
+          "width": 480
+        },
+        {
+          "src": "/photos/gallery-rough-open-floor-800.webp",
+          "width": 800
+        }
+      ],
+      "blur": "data:image/webp;base64,UklGRm4AAABXRUJQVlA4IGIAAAAwBACdASoYABIAPu1krVAppSQisBgIATAdiWMAsOwQiuNk0tywLDfwawAA/p2GLD1KvVF3n57mFssjzti1e4pljCR+6z7W9n+9W5eF8RsYnvTPrfff8PtAlAEUBnEac9AAAA==",
+      "category": "rough"
+    }
+  ]
 }

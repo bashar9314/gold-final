@@ -1,17 +1,17 @@
 import { photos, srcSet, largest } from '@/data/photos';
 
 export default function Uniform() {
-  const u = photos.uniform;
+  const u = photos.team;
   return (
     <section id="brand" className="relative overflow-hidden bg-forest-deep text-ivory">
       <div className="grid lg:grid-cols-2">
         <div className="rv relative min-h-[420px] bg-forest lg:min-h-[640px]">
           {u ? (
-            <img src={largest(u)} srcSet={srcSet(u)} sizes="(min-width:1024px) 50vw, 100vw" alt="Magnolia Construction Cleaning branded team uniform"
-              width={u.width} height={u.height} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-contain p-6 sm:p-10" />
+            <img src={largest(u)} srcSet={srcSet(u)} sizes="(min-width:1024px) 50vw, 100vw" alt="The Magnolia Construction Cleaning team in branded uniforms"
+              width={u.width} height={u.height} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
           ) : (
             <div className="absolute inset-0 flex items-end border border-dashed border-gold/40 m-6 p-6 sm:m-10">
-              <p className="text-[10px] uppercase tracking-[0.25em] text-ivory/50">Uniform mockup<br /><span className="normal-case tracking-normal">Add photos-inbox/uniform.jpg</span></p>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-ivory/50">Team photo<br /><span className="normal-case tracking-normal">Add photos-inbox/team.jpg</span></p>
             </div>
           )}
         </div>
