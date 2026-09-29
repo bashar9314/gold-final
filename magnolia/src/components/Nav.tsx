@@ -23,7 +23,7 @@ export default function Nav() {
   return (
     <header className={`fixed inset-x-0 top-0 z-50 border-b transition-all duration-500 ${scrolled ? 'border-gold/30 bg-ivory shadow-[0_8px_30px_-18px_rgba(19,42,32,.35)]' : 'border-transparent bg-ivory'}`}>
       <div className={`container-x flex items-center justify-between transition-all duration-500 ${scrolled ? 'h-[64px]' : 'h-[76px]'}`}>
-        <a href="#top" className="group flex items-center gap-3" aria-label={`${site.name} — home`} onClick={() => setOpen(false)}>
+        <a href="#top" className="group flex min-h-[44px] items-center gap-3" aria-label={`${site.name} — home`} onClick={() => setOpen(false)}>
           <img src="/brand/magnolia-mark.webp" alt="" width={860} height={440}
             className={`w-auto transition-all duration-500 group-hover:scale-[1.04] ${scrolled ? 'h-9' : 'h-11'}`} />
           <span className="leading-none">

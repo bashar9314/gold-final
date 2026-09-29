@@ -19,7 +19,22 @@
     ],
     "blur": "data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAABwBACdASoYAA0APu1iqU2ppaOiMAgBMB2JQBOmUI7gA3SHSEm6NuDdbexXwAD+7JTi0xNuQEOlF+Ed59QT6fKGpCqbPjNKO4gcE/zywLrY9PM3aqNU9lLCSRARSwDF6k381gWQRpfiQAAA"
   },
-  "team": null,
+  "team": {
+    "id": "team",
+    "width": 1024,
+    "height": 1024,
+    "srcs": [
+      {
+        "src": "/photos/team-480.webp",
+        "width": 480
+      },
+      {
+        "src": "/photos/team-800.webp",
+        "width": 800
+      }
+    ],
+    "blur": "data:image/webp;base64,UklGRqgAAABXRUJQVlA4IJwAAADwBACdASoYABgAPu1srVCppiQiqAqpMB2JYwDDNAtdBbX16KNmzDxCjLLcR++qM5AA/uhpjsgQceTUNjyHPsRbv6rnyr66PEUep/T0l49Uuc7THGmiZy1PiF07PRac/e6HZqso1IFp3kpNrM/gEf4K7xJHUjxTsl87Z5eaXSJH+5+T8c8rGhQzyy8xDnrHEIvNbG04RNUK0AnpQAA="
+  },
   "pairs": [
     {
       "before": {
