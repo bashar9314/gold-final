@@ -27,7 +27,7 @@ export default function Hero() {
       {/* background */}
       <div ref={bg} className="absolute inset-0 -z-20 will-change-transform" style={{ transform: 'scale(1.08)' }}>
         {hero ? (
-          <img src={largest(hero)} srcSet={srcSet(hero)} sizes="100vw" alt="Freshly cleaned interior after construction by Magnolia Construction Cleaning"
+          <img src={largest(hero)} srcSet={srcSet(hero)} sizes="100vw" alt="Bright, finished modern kitchen and living space, move-in ready"
             width={hero.width} height={hero.height} fetchPriority="high" decoding="async" className="h-full w-full object-cover" />
         ) : (
           <HeroArt />

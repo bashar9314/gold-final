@@ -15,7 +15,6 @@ export default function QuoteForm() {
     const form = e.currentTarget;
     const fd = new FormData(form);
     if (fd.get('company_website')) return; // honeypot
-    files.forEach((f) => fd.append('photos', f));
 
     if (!site.formEndpoint) {
       // No backend connected yet: open an email draft if we have an address, otherwise explain honestly.
@@ -32,7 +31,7 @@ export default function QuoteForm() {
     }
     setState('sending'); setErr('');
     try {
-      const r = await fetch(site.formEndpoint, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
+      const r = await fetch(site.formEndpoint, { method: 'POST', body: fd });
       if (!r.ok) throw new Error('bad status');
       setState('sent'); form.reset(); setFiles([]);
     } catch {
@@ -50,7 +49,8 @@ export default function QuoteForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-x-8 gap-y-6 sm:grid-cols-2" noValidate={false}>
+    <form name="quote" method="POST" data-netlify="true" netlify-honeypot="company_website" onSubmit={onSubmit} className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+      <input type="hidden" name="form-name" value="quote" />
       <input type="text" name="company_website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
       <F label="First Name" name="firstName" autoComplete="given-name" required />
       <F label="Last Name" name="lastName" autoComplete="family-name" required />
@@ -70,7 +70,7 @@ export default function QuoteForm() {
         <label className="mt-2 flex min-h-[64px] cursor-pointer items-center justify-between gap-4 border border-dashed border-forest/30 px-4 py-3 text-sm text-charcoal/70 transition-colors hover:border-gold">
           <span>{files.length ? `${files.length} photo${files.length > 1 ? 's' : ''} selected` : 'Tap to add photos of the space'}</span>
           <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-dark">Browse</span>
-          <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 10))} />
+          <input type="file" name="photos" accept="image/*" multiple className="sr-only" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
         </label>
       </div>
       <div className="sm:col-span-2">
