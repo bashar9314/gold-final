@@ -21,7 +21,7 @@ export const site = {
   formEndpoint: 'https://api.web3forms.com/submit',
   // Web3Forms access key (public by design; it only lets the form send mail to the address registered with it)
   // Photo uploads go to Cloudinary (free). Fill both to turn the upload field on. Both values are public by design.
-  cloudinary: { cloud: '', preset: '' },
+  cloudinary: { cloud: 'jvnv3q51', preset: 'magnolia_quotes' },
   web3formsKey: '7fd7525b-4386-4f73-899b-806410b66542',
 };
 
