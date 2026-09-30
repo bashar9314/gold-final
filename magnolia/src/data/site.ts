@@ -3,12 +3,13 @@
  * Anything left empty renders as a clearly marked placeholder and is NEVER invented.
  * Fill these in and the whole site (contact section, footer, schema.org, buttons) updates.
  */
+const EMAIL = 'magnoliaconstructioncleans@gmail.com';
 export const site = {
   name: 'Magnolia Construction Cleaning LLC',
   short: 'Magnolia Construction Cleaning',
   url: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.example.com', // TODO: real domain
   phone: '(662) 318-4048',
-  email: 'magnoliaconstructioncleans@gmail.com',
+  email: EMAIL,
   hours: 'Monday – Sunday, 8:00 AM – 8:00 PM',
   serviceArea: 'Southaven, Mississippi and surrounding communities within a 40-mile radius',
   // Only set true once you have CONFIRMED these areas. Drives SEO copy + schema.
@@ -17,7 +18,7 @@ export const site = {
   geo: { lat: 34.9889, lng: -90.0126, radiusMeters: 64374 },
   social: { instagram: '', facebook: '', linkedin: '' } as Record<string, string>,
   // Where the quote form posts (Formspree / Netlify Forms / your API). See README.
-  formEndpoint: process.env.NEXT_PUBLIC_FORM_ENDPOINT || '',
+  formEndpoint: process.env.NEXT_PUBLIC_FORM_ENDPOINT || `https://formsubmit.co/ajax/${EMAIL}`,
 };
 
 export const ph = {

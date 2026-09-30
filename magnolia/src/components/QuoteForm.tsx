@@ -8,14 +8,14 @@ type State = 'idle' | 'sending' | 'sent' | 'error';
 /** Downscale a photo to max 1600px JPEG. Returns null if the browser cannot decode it (e.g. HEIC on Chrome). */
 async function shrink(file: File): Promise<File | null> {
   if (!file.type.startsWith('image/')) return null;
-  if (file.size < 900_000 && /jpe?g|png|webp/.test(file.type)) return file;
+  if (file.size < 450_000 && /jpe?g|png|webp/.test(file.type)) return file;
   try {
     const bmp = await createImageBitmap(file);
-    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const scale = Math.min(1, 1400 / Math.max(bmp.width, bmp.height));
     const c = document.createElement('canvas');
     c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
     c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
-    const blob: Blob | null = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.82));
+    const blob: Blob | null = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.78));
     return blob ? new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : null;
   } catch { return file.size < 2_000_000 ? file : null; }
 }
@@ -37,7 +37,7 @@ export default function QuoteForm() {
     e.preventDefault();
     const form = e.currentTarget;
     const fd = new FormData(form);
-    if (fd.get('company_website')) return; // honeypot
+    if (fd.get('_honey')) return; // honeypot
     fd.delete('photos');
     lastData.current = fd;
 
@@ -50,10 +50,12 @@ export default function QuoteForm() {
     setState('sending'); setErr('');
     try {
       // Phone photos are often 3-8 MB each; shrink them so the request stays under the host's upload limit.
-      const shrunk = await Promise.all(files.slice(0, 5).map(shrink));
+      const shrunk = await Promise.all(files.slice(0, 4).map(shrink));
       shrunk.forEach((f) => f && fd.append('photos', f));
-      const r = await fetch(site.formEndpoint, { method: 'POST', body: fd });
+      const r = await fetch(site.formEndpoint, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
       if (!r.ok) throw new Error('status ' + r.status);
+      const j = await r.json().catch(() => ({}));
+      if (j && (j.success === false || j.success === 'false')) throw new Error('status rejected');
       setState('sent'); form.reset(); setFiles([]);
     } catch (x) {
       console.error(x);
@@ -72,9 +74,11 @@ export default function QuoteForm() {
   }
 
   return (
-    <form name="quote" method="POST" data-netlify="true" netlify-honeypot="company_website" onSubmit={onSubmit} className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
-      <input type="hidden" name="form-name" value="quote" />
-      <input type="text" name="company_website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
+    <form name="quote" onSubmit={onSubmit} className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+      <input type="hidden" name="_subject" value="New quote request from the Magnolia website" />
+      <input type="hidden" name="_template" value="table" />
+      <input type="hidden" name="_captcha" value="false" />
+      <input type="text" name="_honey" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
       <F label="First Name" name="firstName" autoComplete="given-name" required />
       <F label="Last Name" name="lastName" autoComplete="family-name" required />
       <F label="Phone" name="phone" type="tel" autoComplete="tel" inputMode="tel" required />
