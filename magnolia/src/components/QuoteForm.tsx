@@ -26,6 +26,7 @@ export default function QuoteForm() {
   const [err, setErr] = useState('');
   const lastData = useRef<FormData | null>(null);
 
+  const canUpload = !!(site.cloudinary.cloud && site.cloudinary.preset);
   const FIELDS = ['firstName', 'lastName', 'phone', 'email', 'address', 'propertyType', 'projectType', 'sqft', 'date', 'message'];
 
   function mailtoFallback(fd: FormData) {
@@ -41,6 +42,22 @@ export default function QuoteForm() {
     lastData.current = fd;
     setState('sending'); setErr('');
     try {
+      if (canUpload && files.length) {
+        // Upload photos straight to Cloudinary, then put the links in the email.
+        const urls: string[] = []; let failed = 0;
+        for (const f of files.slice(0, 6)) {
+          try {
+            const small = await shrink(f);
+            if (!small) { failed++; continue; }
+            const up = new FormData(); up.append('file', small); up.append('upload_preset', site.cloudinary.preset);
+            const ur = await fetch(`https://api.cloudinary.com/v1_1/${site.cloudinary.cloud}/image/upload`, { method: 'POST', body: up });
+            const uj = await ur.json();
+            if (ur.ok && uj.secure_url) urls.push(uj.secure_url); else failed++;
+          } catch { failed++; }
+        }
+        if (urls.length) fd.append('photos', urls.join('\n'));
+        if (failed) fd.append('photo_note', `${failed} photo(s) could not be uploaded. Ask the customer to email them.`);
+      }
       fd.append('access_key', site.web3formsKey);
       fd.append('subject', 'New quote request from the Magnolia website');
       fd.append('from_name', `${fd.get('firstName') ?? ''} ${fd.get('lastName') ?? ''}`.trim() || 'Website visitor');
@@ -59,7 +76,7 @@ export default function QuoteForm() {
     return (
       <div role="status" className="py-10 text-center">
         <p className="font-serif text-3xl text-forest">Thank you.</p>
-        <p className="mt-3 text-charcoal/70">We received your request and will be in touch shortly. You can email photos of the space to {site.email} any time.</p>
+        <p className="mt-3 text-charcoal/70">We received your request and will be in touch shortly.{!canUpload && <> You can email photos of the space to {site.email} any time.</>}</p>
       </div>
     );
   }
@@ -80,7 +97,18 @@ export default function QuoteForm() {
         <label className="label" htmlFor="message">Message / Project Details</label>
         <textarea id="message" name="message" rows={4} className="field resize-y" placeholder="Tell us about the project, timing, and anything we should know." />
       </div>
-      <p className="text-sm text-charcoal/70 sm:col-span-2">Have photos of the space? Reply to our confirmation or email them to <a className="ulink text-gold-dark" href={`mailto:${site.email}`}>{site.email}</a> and we will include them in your quote.</p>
+      {canUpload ? (
+        <div className="sm:col-span-2">
+          <span className="label">Upload Photos <span className="normal-case tracking-normal text-stone">(optional, up to 6)</span></span>
+          <label className="mt-2 flex min-h-[64px] cursor-pointer items-center justify-between gap-4 border border-dashed border-forest/30 px-4 py-3 text-sm text-charcoal/70 transition-colors hover:border-gold">
+            <span>{files.length ? `${files.length} photo${files.length > 1 ? 's' : ''} selected` : 'Tap to add photos of the space'}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-dark">Browse</span>
+            <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 6))} />
+          </label>
+        </div>
+      ) : (
+        <p className="text-sm text-charcoal/70 sm:col-span-2">Have photos of the space? Email them to <a className="ulink text-gold-dark" href={`mailto:${site.email}`}>{site.email}</a> and we will include them in your quote.</p>
+      )}
       <div className="sm:col-span-2">
         <button type="submit" disabled={state === 'sending'} className="btn btn-forest w-full disabled:opacity-60 sm:w-auto sm:min-w-[260px]">
           <span>{state === 'sending' ? 'Sending…' : <>Request My Quote <Arrow /></>}</span>
