@@ -18,7 +18,9 @@ export const site = {
   geo: { lat: 34.9889, lng: -90.0126, radiusMeters: 64374 },
   social: { instagram: '', facebook: '', linkedin: '' } as Record<string, string>,
   // Where the quote form posts (Formspree / Netlify Forms / your API). See README.
-  formEndpoint: process.env.NEXT_PUBLIC_FORM_ENDPOINT || `https://formsubmit.co/ajax/${EMAIL}`,
+  formEndpoint: 'https://api.web3forms.com/submit',
+  // Web3Forms access key (public by design; it only lets the form send mail to the address registered with it)
+  web3formsKey: '7fd7525b-4386-4f73-899b-806410b66542',
 };
 
 export const ph = {

@@ -37,29 +37,20 @@ export default function QuoteForm() {
     e.preventDefault();
     const form = e.currentTarget;
     const fd = new FormData(form);
-    if (fd.get('_honey')) return; // honeypot
-    fd.delete('photos');
+    if (fd.get('botcheck')) return; // honeypot
     lastData.current = fd;
-
-    if (!site.formEndpoint) {
-      // No backend connected: open an email draft so the request is never lost.
-      window.location.href = mailtoFallback(fd);
-      setState('sent');
-      return;
-    }
     setState('sending'); setErr('');
     try {
-      // Phone photos are often 3-8 MB each; shrink them so the request stays under the host's upload limit.
-      const shrunk = await Promise.all(files.slice(0, 4).map(shrink));
-      shrunk.forEach((f) => f && fd.append('photos', f));
+      fd.append('access_key', site.web3formsKey);
+      fd.append('subject', 'New quote request from the Magnolia website');
+      fd.append('from_name', `${fd.get('firstName') ?? ''} ${fd.get('lastName') ?? ''}`.trim() || 'Website visitor');
       const r = await fetch(site.formEndpoint, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
-      if (!r.ok) throw new Error('status ' + r.status);
-      const j = await r.json().catch(() => ({}));
-      if (j && (j.success === false || j.success === 'false')) throw new Error('status rejected');
+      const j = await r.json().catch(() => ({} as { success?: boolean; message?: string }));
+      if (!r.ok || !j.success) throw new Error(j.message || 'status ' + r.status);
       setState('sent'); form.reset(); setFiles([]);
     } catch (x) {
       console.error(x);
-      setErr(`We couldn't send your request just now${x instanceof Error && x.message.startsWith('status') ? ` (${x.message})` : ''}. Call ${site.phone} or use the button below to email it to us instead.`);
+      setErr(`We couldn't send your request just now. Please call ${site.phone} or use the button below to email it to us instead.`);
       setState('error');
     }
   }
@@ -68,17 +59,14 @@ export default function QuoteForm() {
     return (
       <div role="status" className="py-10 text-center">
         <p className="font-serif text-3xl text-forest">Thank you.</p>
-        <p className="mt-3 text-charcoal/70">We received your request and will be in touch shortly.</p>
+        <p className="mt-3 text-charcoal/70">We received your request and will be in touch shortly. You can email photos of the space to {site.email} any time.</p>
       </div>
     );
   }
 
   return (
     <form name="quote" onSubmit={onSubmit} className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
-      <input type="hidden" name="_subject" value="New quote request from the Magnolia website" />
-      <input type="hidden" name="_template" value="table" />
-      <input type="hidden" name="_captcha" value="false" />
-      <input type="text" name="_honey" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
+      <input type="checkbox" name="botcheck" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
       <F label="First Name" name="firstName" autoComplete="given-name" required />
       <F label="Last Name" name="lastName" autoComplete="family-name" required />
       <F label="Phone" name="phone" type="tel" autoComplete="tel" inputMode="tel" required />
@@ -92,14 +80,7 @@ export default function QuoteForm() {
         <label className="label" htmlFor="message">Message / Project Details</label>
         <textarea id="message" name="message" rows={4} className="field resize-y" placeholder="Tell us about the project, timing, and anything we should know." />
       </div>
-      <div className="sm:col-span-2">
-        <span className="label">Upload Photos <span className="normal-case tracking-normal text-stone">(optional)</span></span>
-        <label className="mt-2 flex min-h-[64px] cursor-pointer items-center justify-between gap-4 border border-dashed border-forest/30 px-4 py-3 text-sm text-charcoal/70 transition-colors hover:border-gold">
-          <span>{files.length ? `${files.length} photo${files.length > 1 ? 's' : ''} selected` : 'Tap to add photos of the space'}</span>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-dark">Browse</span>
-          <input type="file" name="photos" accept="image/*" multiple className="sr-only" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
-        </label>
-      </div>
+      <p className="text-sm text-charcoal/70 sm:col-span-2">Have photos of the space? Reply to our confirmation or email them to <a className="ulink text-gold-dark" href={`mailto:${site.email}`}>{site.email}</a> and we will include them in your quote.</p>
       <div className="sm:col-span-2">
         <button type="submit" disabled={state === 'sending'} className="btn btn-forest w-full disabled:opacity-60 sm:w-auto sm:min-w-[260px]">
           <span>{state === 'sending' ? 'Sending…' : <>Request My Quote <Arrow /></>}</span>
