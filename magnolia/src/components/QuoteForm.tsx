@@ -1,41 +1,64 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { site, propertyTypes, projectTypes } from '@/data/site';
 import { Arrow } from './Icons';
 
 type State = 'idle' | 'sending' | 'sent' | 'error';
 
+/** Downscale a photo to max 1600px JPEG. Returns null if the browser cannot decode it (e.g. HEIC on Chrome). */
+async function shrink(file: File): Promise<File | null> {
+  if (!file.type.startsWith('image/')) return null;
+  if (file.size < 900_000 && /jpe?g|png|webp/.test(file.type)) return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+    const blob: Blob | null = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.82));
+    return blob ? new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : null;
+  } catch { return file.size < 2_000_000 ? file : null; }
+}
+
 export default function QuoteForm() {
   const [state, setState] = useState<State>('idle');
   const [files, setFiles] = useState<File[]>([]);
   const [err, setErr] = useState('');
+  const lastData = useRef<FormData | null>(null);
+
+  const FIELDS = ['firstName', 'lastName', 'phone', 'email', 'address', 'propertyType', 'projectType', 'sqft', 'date', 'message'];
+
+  function mailtoFallback(fd: FormData) {
+    const body = FIELDS.map((k) => `${k}: ${fd.get(k) ?? ''}`).join('\n');
+    return `mailto:${site.email}?subject=${encodeURIComponent('Quote request')}&body=${encodeURIComponent(body)}`;
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const fd = new FormData(form);
     if (fd.get('company_website')) return; // honeypot
+    fd.delete('photos');
+    lastData.current = fd;
 
     if (!site.formEndpoint) {
-      // No backend connected yet: open an email draft if we have an address, otherwise explain honestly.
-      if (site.email) {
-        const body = ['firstName', 'lastName', 'phone', 'email', 'address', 'propertyType', 'projectType', 'sqft', 'date', 'message']
-          .map((k) => `${k}: ${fd.get(k) ?? ''}`).join('\n');
-        window.location.href = `mailto:${site.email}?subject=${encodeURIComponent('Quote request')}&body=${encodeURIComponent(body)}`;
-        setState('sent');
-      } else {
-        setErr('The quote form is not connected yet. Set NEXT_PUBLIC_FORM_ENDPOINT (see README) or add the business email.');
-        setState('error');
-      }
+      // No backend connected: open an email draft so the request is never lost.
+      window.location.href = mailtoFallback(fd);
+      setState('sent');
       return;
     }
     setState('sending'); setErr('');
     try {
+      // Phone photos are often 3-8 MB each; shrink them so the request stays under the host's upload limit.
+      const shrunk = await Promise.all(files.slice(0, 5).map(shrink));
+      shrunk.forEach((f) => f && fd.append('photos', f));
       const r = await fetch(site.formEndpoint, { method: 'POST', body: fd });
-      if (!r.ok) throw new Error('bad status');
+      if (!r.ok) throw new Error('status ' + r.status);
       setState('sent'); form.reset(); setFiles([]);
-    } catch {
-      setErr('Something went wrong. Please try again or call us.'); setState('error');
+    } catch (x) {
+      console.error(x);
+      setErr(`We couldn't send your request just now${x instanceof Error && x.message.startsWith('status') ? ` (${x.message})` : ''}. Call ${site.phone} or use the button below to email it to us instead.`);
+      setState('error');
     }
   }
 
@@ -77,7 +100,12 @@ export default function QuoteForm() {
         <button type="submit" disabled={state === 'sending'} className="btn btn-forest w-full disabled:opacity-60 sm:w-auto sm:min-w-[260px]">
           <span>{state === 'sending' ? 'Sending…' : <>Request My Quote <Arrow /></>}</span>
         </button>
-        <p role="alert" className="mt-4 min-h-[1.25rem] text-sm text-red-800">{state === 'error' ? err : ''}</p>
+        <div role="alert" className="mt-4 min-h-[1.25rem] text-sm text-red-800">
+          {state === 'error' && (<>
+            <p>{err}</p>
+            {lastData.current && <a href={mailtoFallback(lastData.current)} className="btn btn-line-dark mt-3"><span>Email my request instead</span></a>}
+          </>)}
+        </div>
         <p className="mt-1 text-xs text-stone">We only use your details to respond to your request.</p>
       </div>
     </form>
