@@ -370,6 +370,9 @@ var STAGES = [
 var SEGMENTS = ['General Contractor', 'Home Builder', 'Remodeling Contractor', 'Property Developer', 'Real Estate Professional', 'Homeowner', 'Commercial Property Owner', 'Other'];
 
 var LOGS = {
+  interested: { label: 'Interested', days: 1, stage: 'talking' },
+  send_info: { label: 'Information requested', days: 2, stage: 'talking' },
+  not_interested: { label: 'Not interested', days: null, stage: 'lost' },
 
   called: { label: 'Called (outcome not logged)', days: 3, stage: 'reach' },
 
@@ -441,7 +444,7 @@ var S = {
 
   canWrite: true, ready: false, err: '', openId: null, drawerActs: [], logging: null, emailTpl: '', modal: null,
 
-  f: { q: '', stage: '', segment: '', owner: '', queue: '' }
+  todayOwner: 'all', f: { q: '', stage: '', segment: '', owner: '', queue: '' }
 
 };
 
@@ -509,7 +512,8 @@ function logActivity(lead, type, note, followUp) {
 
   if (cfg.stage && lead.stage === 'new') patch.stage = cfg.stage;
 
-  if (type === 'spoke' && lead.stage === 'reach') patch.stage = 'talking';
+  if (['spoke','interested','send_info'].includes(type) && isOpen(lead)) patch.stage = 'talking';
+  if(type==='not_interested'){patch.stage='lost';patch.followUp='';}
 
   patch.updatedAt=now;return window.magnoliaLog(lead.id,event,patch);
 
@@ -531,7 +535,7 @@ function setStage(lead, stage) {
 
 var byId = function (id) { return S.leads.filter(function (l) { return l.id === id; })[0]; };
 
-function nameOf(id) { if (!id) return 'Unassigned'; var p = S.people[id]; return (p && p.name) || (id === S.myId ? 'You' : 'Teammate'); }
+function nameOf(id) { if (!id) return 'Unassigned'; if(id==='wife')return 'Wife'; if(id==='owner')return 'Bashar'; var p = S.people[id]; return (p && p.name) || (id === S.myId ? 'You' : 'Teammate'); }
 
 function avatar(id) {
 
@@ -553,9 +557,9 @@ function weekStats() {
 
     if (new Date(a.at).getTime() < since) return;
 
-    if (a.type === 'called' || a.type === 'voicemail' || a.type === 'no_answer' || a.type === 'spoke') c.calls++;
+    if (a.type === 'called' || a.type === 'voicemail' || a.type === 'no_answer' || a.type === 'spoke' || a.type === 'interested' || a.type === 'send_info' || a.type === 'not_interested') c.calls++;
 
-    if (a.type === 'spoke') c.spoke++; if (a.type === 'email') c.emails++; if (a.type === 'text') c.texts++;
+    if (['spoke','interested','send_info','not_interested'].includes(a.type)) c.spoke++; if (a.type === 'email') c.emails++; if (a.type === 'text') c.texts++;
 
   });
 
@@ -584,6 +588,7 @@ function filtered() {
     if (S.f.owner === 'me' && l.owner !== S.myId) return false;
 
     if (S.f.owner === 'none' && l.owner) return false;
+    if (['owner','wife'].includes(S.f.owner) && l.owner!==S.f.owner) return false;
 
     if (q) {
 
@@ -625,7 +630,8 @@ function lastLine(l) {
 
 function quickButtons(l) {
 
-  var b = l.phone ? '<a class="btn sm" href="' + esc(telHref(l.phone)) + '">Call</a>' : '';
+  var b = '<button class="btn sm" data-act="preparecall" data-id="'+esc(l.id)+'">Script</button>';
+  b += l.phone ? '<a class="btn sm" href="' + esc(telHref(l.phone)) + '">Call</a>' : '';
 
   if (l.phone) b += '<button class="btn sm" data-act="copyphone" data-id="' + l.id + '" title="Copy phone number">' + esc(l.phone) + '</button>';
 
@@ -633,7 +639,8 @@ function quickButtons(l) {
 
     '<button class="btn sm" data-act="quicklog" data-t="no_answer" data-id="' + l.id + '">No answer</button>' +
 
-    '<button class="btn sm" data-act="quicklog" data-t="spoke" data-id="' + l.id + '">Spoke</button>';
+    '<button class="btn sm" data-act="quicklog" data-t="spoke" data-id="' + l.id + '">Spoke</button>' +
+    '<button class="btn sm" data-act="quicklog" data-t="interested" data-id="' + l.id + '">Interested</button>';
 
   return b;
 
@@ -647,7 +654,7 @@ function row(l) {
 
     '<div class="stagecell">' + (l.priority === 'High' ? '<span class="chip">Priority</span> ' : '') + stageChip(l.stage) + '</div><div class="duecell">' + dueChip(l) + '</div>' +
 
-    '<div class="last">' + esc(lastLine(l)) + ' ' + avatar(l.owner) + '</div>' +
+    '<div class="last">' + esc(lastLine(l)) + '<br><small>Assigned: ' + esc(nameOf(l.owner)) + '</small> ' + avatar(l.owner) + '</div>' +
 
     '<div class="quick">' + quickButtons(l) + '</div></div>';
 
@@ -673,60 +680,27 @@ function emptyState() {
 
 }
 
-function viewToday() {
-
-  var t = today(), open = S.leads.filter(isOpen);
-
-  var overdue = open.filter(function (l) { return l.followUp && l.followUp < t; });
-
-  var due = open.filter(function (l) { return l.followUp === t; });
-
-  var fresh = open.filter(function (l) { return l.stage === 'new' && !l.sourceCalled && !l.lastContact && !(l.followUp && l.followUp <= t); });
-
-  var soon = open.filter(function (l) { return l.followUp > t && dayDiff(l.followUp, t) <= 7; });
-
-  var w = weekStats();
-
-  var byDue = function (a, b) { return a.followUp < b.followUp ? -1 : 1; };
-
-  var h = '<div class="stats">' +
-
-    '<div class="stat' + (overdue.length ? ' hot' : '') + '"><b>' + overdue.length + '</b><span>Overdue</span></div>' +
-
-    '<div class="stat"><b>' + due.length + '</b><span>Due today</span></div>' +
-
-    '<div class="stat"><b>' + w.calls + '</b><span>Calls, last 7 days</span></div>' +
-
-    '<div class="stat"><b>' + w.spoke + '</b><span>Conversations</span></div>' +
-
-    '<div class="stat"><b>' + w.emails + '</b><span>Emails</span></div></div>';
-
-  if (!S.leads.length) return h + emptyState();
-
-  var any = overdue.length + due.length + fresh.length + soon.length;
-
-  h += group('Overdue', overdue.sort(byDue)) + group('Due today', due) +
-
-    group('Ready for a first call', fresh, 'New leads nobody has contacted.') + group('Coming up this week', soon.sort(byDue));
-
-  if (!any) h += '<div class="empty"><h3>You are caught up</h3><p>Nothing is due. Add new leads or check the pipeline.</p></div>';
-
-  var feed = S.acts.filter(function (a) { return a.type !== 'stage'; }).slice(0, 8);
-
-  if (feed.length) {
-
-    h += '<section class="section"><h2 class="sec">Team activity</h2><ul class="tl">' + feed.map(function (a) {
-
-      var l = byId(a.leadId);
-
-      return '<li><small>' + esc(a.by ? nameOf(a.by) : 'Team') + ' · ' + ago(a.at) + '</small><p><b>' + esc(LOGS[a.type] ? LOGS[a.type].label : a.type) + '</b> · ' + esc(l ? (l.company || l.name) : 'Deleted lead') + (a.note ? ' — ' + esc(a.note) : '') + '</p></li>';
-
-    }).join('') + '</ul></section>';
-
-  }
-
-  return h;
-
+function workPriority(l){
+ var t=today();
+ if(l.followUp && l.followUp<t)return {rank:0,reason:'Overdue follow-up · '+fmtDay(l.followUp)};
+ if(l.followUp===t)return {rank:1,reason:'Follow-up due today'};
+ if(l.stage==='quote'&&!l.followUp)return {rank:2,reason:'Quote needs a next step'};
+ if(l.sourceCalled&&!l.lastContact&&!l.followUp)return {rank:3,reason:'Prior call recorded · outcome/date unknown'};
+ if(l.lastContact&&!l.followUp)return {rank:4,reason:'Contact logged · set a follow-up'};
+ return {rank:5,reason:l.phone?'Ready for a first call':'Research contact details first'};
+}
+function workScope(l){return S.todayOwner==='all'||(S.todayOwner==='mine'?l.owner===S.myId:S.todayOwner==='none'?!l.owner:l.owner===S.todayOwner);}
+function viewToday(){
+ var t=today(),open=S.leads.filter(isOpen),scoped=open.filter(workScope),calls=['called','voicemail','no_answer','spoke','interested','send_info','not_interested'];
+ var completed=S.acts.filter(function(a){var lead=byId(a.leadId);return calls.includes(a.type)&&new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(a.at))===t&&(S.todayOwner==='all'||(S.todayOwner==='mine'?a.by===S.myId:['owner','wife'].includes(S.todayOwner)?a.by===S.todayOwner:lead&&workScope(lead)));}).length;
+ var due=scoped.filter(function(l){return l.followUp&&l.followUp<=t;}),missing=scoped.filter(function(l){return !l.phone;}),unscheduled=scoped.filter(function(l){return !l.followUp;});
+ var queue=scoped.filter(function(l){return l.phone&&(!l.followUp||l.followUp<=t);}).sort(function(a,b){return workPriority(a).rank-workPriority(b).rank||(a.followUp||'').localeCompare(b.followUp||'')||(a.company||'').localeCompare(b.company||'');}).slice(0,20);
+ var h='<div class="hero"><div><div class="eyebrow">Your daily action plan</div><h1>One team. Clear next steps.</h1><p>Work assigned prospects, log actual outcomes, and agree on the next action.</p></div></div><div class="dash-panel"><label class="f">Show work for<select id="todayOwner">'+[['all','Whole team'],['mine','My assignments'],['owner','Bashar'],['wife','Wife'],['none','Unassigned']].map(function(x){return '<option value="'+x[0]+'"'+(S.todayOwner===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></label><p class="hint">Working as '+esc(nameOf(S.myId))+'. Change your working profile in the header. Assign a lead in its record before calling to coordinate with each other.</p></div>';
+ h+='<div class="stats">'+[[completed,'Calls logged today · goal 20'],[due.length,'Follow-ups due'],[unscheduled.length,'Need a follow-up date'],[missing.length,'Missing a phone']].map(function(x){return '<div class="stat"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>';}).join('')+'</div>';
+ h+='<section class="section"><h2 class="sec">Your next '+queue.length+' calls</h2><p class="hint">Due commitments first, then quotes and unresolved contact history. Future follow-ups stay out of this list. Record an outcome only after a real call.</p>'+ (queue.length?queue.map(function(l){return '<div class="preview-note"><b>'+esc(workPriority(l).reason)+'</b>'+row(l)+'</div>';}).join(''):'<div class="empty"><h3>No calls ready in this view</h3><p>Review assignments, contact details or scheduled follow-ups.</p></div>')+'</section>';
+ h+=group('Coming up in the next 7 days',scoped.filter(function(l){return l.followUp>t&&dayDiff(l.followUp,t)<=7;}).sort(function(a,b){return a.followUp.localeCompare(b.followUp);})) + group('Find the missing phone',missing,'Verify contact details before outreach.');
+ h+='<section class="dash-panel"><h2>Team workload</h2>'+[['owner','Bashar'],['wife','Wife'],['','Unassigned']].map(function(x){var ls=open.filter(function(l){return (l.owner||'')===x[0];});return '<div class="attention-item"><div><b>'+x[1]+'</b><small>'+ls.length+' active · '+ls.filter(function(l){return l.followUp&&l.followUp<=t;}).length+' due</small></div></div>';}).join('')+'</section>';
+ return h;
 }
 
 function card(l) {
@@ -765,7 +739,7 @@ function viewLeadsShell() {
 
     '<select id="fseg" aria-label="Filter by type">' + opt(SEGMENTS.map(function (s) { return { v: s, t: s }; }), S.f.segment, 'All types') + '</select>' +
 
-    '<select id="fown" aria-label="Filter by owner">' + opt([{ v: 'me', t: 'Mine' }, { v: 'none', t: 'Unassigned' }], S.f.owner, 'Anyone') + '</select>' +
+    '<select id="fown" aria-label="Filter by owner">' + opt([{ v: 'me', t: 'Mine' }, { v: 'owner', t: 'Bashar' }, { v: 'wife', t: 'Wife' }, { v: 'none', t: 'Unassigned' }], S.f.owner, 'Anyone') + '</select>' +
 
     '<span style="flex:1"></span>' + (S.canWrite && S.ready ? '<button class="btn primary" data-act="addlead">+ Add lead</button>' : '') + '</div><div id="leadList"></div>';
 
@@ -786,7 +760,7 @@ function leadListHtml() {
 
 /* Personalised call playbooks. No external service or invented account research. */
 var CALL_MODES=[['first','First call · Find the right project'],['followup','Follow-up · Reopen the opportunity'],['quote','Quote follow-up · Clarify the decision'],['voicemail','Voicemail · Earn a callback']];
-var callDraft={leadId:'',mode:'first',goal:'walk',text:null};
+var callDraft={leadId:'',mode:'first',goal:'walk',channel:'call',text:null};
 function generateCallScript(l,mode,goal){
  var company=l.company||'your company', caller=S.myName||'Bashar', greeting=l.name?'Hi '+firstName(l)+',':'Hi,', builder=l.segment==='Home Builder', referral=l.segment==='Other' && /association/i.test(l.notes||''), quoted=l.stage==='quote';
  var project=builder?'homes approaching completion':'projects approaching turnover';
@@ -803,8 +777,15 @@ function generateCallScript(l,mode,goal){
 }
 function callGeneratorHtml(){
  var lead=byId(callDraft.leadId), options=S.leads.slice().sort(function(a,b){return (a.company||a.name||'').localeCompare(b.company||b.name||'');});
- var text=lead?(callDraft.text===null?generateCallScript(lead,callDraft.mode,callDraft.goal):callDraft.text):'';
- return '<section class="dash-panel call-studio"><div class="eyebrow">Magnolia call playbooks</div><h1 style="font-size:32px;margin:8px 0">Know what to say. Know what to ask.</h1><p class="lede">Choose a lead and a template. Your script fills in automatically, ready to read or adjust before you call.</p><div class="grid2"><label class="f">Lead<select id="callLead"><option value="">Choose a company…</option>'+options.map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===callDraft.leadId?' selected':'')+'>'+esc(x.company||x.name)+'</option>';}).join('')+'</select></label><label class="f">Call template<select id="callMode">'+CALL_MODES.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===callDraft.mode?' selected':'')+'>'+esc(x[1])+'</option>';}).join('')+'</select></label><label class="f">Next-step goal<select id="callGoal">'+[['walk','Discuss a walkthrough'],['intro','Send an introduction'],['vendor','Ask about vendor onboarding']].map(function(x){return '<option value="'+x[0]+'"'+(x[0]===callDraft.goal?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></label></div>'+(lead?'<div class="preview-note"><b>'+esc(lead.company||lead.name)+'</b> · '+esc(stageOf(lead.stage).label)+'<br>'+esc(lastLine(lead))+(callDraft.mode==='quote'&&lead.stage!=='quote'?'<br>No quote is recorded for this lead; the script qualifies scope instead of claiming a quote was sent.':'')+'</div><details style="margin:12px 0"><summary>Review lead notes before calling</summary><p style="white-space:pre-line">'+esc(lead.notes||'No notes yet. Confirm the project and the right contact on the call.')+'</p></details><label class="f">Your generated script<textarea id="callOutput" style="min-height:520px;line-height:1.7;font-size:15px">'+esc(text)+'</textarea></label><div class="bl"><button class="btn" data-act="copycall">Copy script</button><button class="btn" data-act="resetcall">Regenerate</button>'+(lead.phone?'<a class="btn primary" href="'+esc(telHref(lead.phone))+'">Call '+esc(lead.phone)+'</a>':'<span class="hint">Add a phone number to call this lead.</span>')+'<button class="btn" data-act="open" data-id="'+esc(lead.id)+'">Open lead / log outcome</button></div><p class="hint">Generated from saved lead details and Magnolia’s call playbooks. Research notes are reminders to confirm, not claims to read as facts. Editing a script does not record a call.</p>':'<p class="hint">Select a lead to generate its script. You can also open any lead and choose Prepare call.</p>')+'</section>';
+ var text=lead?(callDraft.text===null?(callDraft.channel==='call'?generateCallScript(lead,callDraft.mode,callDraft.goal):generateMessage(lead,callDraft.channel,callDraft.mode,callDraft.goal)):callDraft.text):'';
+ return '<section class="dash-panel call-studio"><div class="eyebrow">Magnolia call playbooks</div><h1 style="font-size:32px;margin:8px 0">Know what to say. Know what to ask.</h1><p class="lede">Choose a lead and a template. Your script fills in automatically, ready to read or adjust before you call.</p><div class="grid2"><label class="f">Lead<select id="callLead"><option value="">Choose a company…</option>'+options.map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===callDraft.leadId?' selected':'')+'>'+esc(x.company||x.name)+'</option>';}).join('')+'</select></label><label class="f">Message format<select id="callChannel">'+[['call','Call script'],['email','Email draft'],['text','Text draft']].map(function(x){return '<option value="'+x[0]+'"'+(callDraft.channel===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></label><label class="f">Situation<select id="callMode">'+CALL_MODES.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===callDraft.mode?' selected':'')+'>'+esc(x[1])+'</option>';}).join('')+'</select></label><label class="f">Next-step goal<select id="callGoal">'+[['walk','Discuss a walkthrough'],['intro','Send an introduction'],['vendor','Ask about vendor onboarding']].map(function(x){return '<option value="'+x[0]+'"'+(x[0]===callDraft.goal?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></label></div>'+(lead?'<div class="preview-note"><b>'+esc(lead.company||lead.name)+'</b> · '+esc(stageOf(lead.stage).label)+'<br>'+esc(lastLine(lead))+(callDraft.mode==='quote'&&lead.stage!=='quote'?'<br>No quote is recorded for this lead; the script qualifies scope instead of claiming a quote was sent.':'')+'</div><details style="margin:12px 0"><summary>Review lead notes before calling</summary><p style="white-space:pre-line">'+esc(lead.notes||'No notes yet. Confirm the project and the right contact on the call.')+'</p></details><label class="f">Your generated script<textarea id="callOutput" style="min-height:520px;line-height:1.7;font-size:15px">'+esc(text)+'</textarea></label><div class="bl"><button class="btn" data-act="copycall">Copy script</button><button class="btn" data-act="resetcall">Regenerate</button>'+(lead.phone?'<a class="btn primary" href="'+esc(telHref(lead.phone))+'">Call '+esc(lead.phone)+'</a>':'<span class="hint">Add a phone number to call this lead.</span>')+'<button class="btn" data-act="open" data-id="'+esc(lead.id)+'">Open lead / log outcome</button></div><p class="hint">Generated from saved lead details and Magnolia’s call playbooks. Research notes are reminders to confirm, not claims to read as facts. Drafts are not sent automatically. Preparing a message does not record contact.</p>':'<p class="hint">Select a lead to generate its script. You can also open any lead and choose Prepare call.</p>')+'</section>';
+}
+function generateMessage(l,channel,mode,goal){
+ var caller=S.myName||'[Your name]',company=l.company||'your company',greeting='Hi '+(firstName(l)||'there')+',',quoted=mode==='quote'&&l.stage==='quote';
+ var intro=quoted?'I’m checking on the cleaning quote for '+company+'. Is there anything you need clarified before deciding on the next step?':mode==='followup'?'I’m checking back to see who coordinates post-construction cleaning for '+company+'.':'I’m '+caller+' with Magnolia Construction Cleaning in Southaven. We handle rough, final, move-in-ready and renovation cleaning.';
+ var ask=quoted?'Who handles approval, and when would a follow-up be useful?':goal==='vendor'?'Who handles cleaning vendor onboarding, and what information should I send?':goal==='intro'?'May I send a short service overview to the person who coordinates cleaning?':'Do you have any projects approaching completion where a cleaning walkthrough would be useful?';
+ if(channel==='text')return greeting+' '+intro+' '+ask+' — '+caller+', Magnolia · '+BIZ.phone;
+ return 'SUBJECT: '+(quoted?'Cleaning quote — next steps for ':'Post-construction cleaning for ')+company+'\n\n'+greeting+'\n\n'+intro+'\n\n'+ask+'\n\n'+caller+'\nMagnolia Construction Cleaning LLC\n'+BIZ.phone+'\nSouthaven, MS · Service area within 40 miles';
 }
 function regenerateCall(){callDraft.text=null;refresh(true);}
 
@@ -884,7 +865,7 @@ function renderTop() {
 
   }).join('');
 
-  $('#topActions').innerHTML = S.canWrite && S.ready ? '<button class="btn" data-act="import">Import</button>' + (dl ? '<button class="btn" data-act="export">Export</button>' : '') + '<button class="btn primary" data-act="addlead">+ Add lead</button><button class="btn" data-act="backup" title="Download all workspace records">Backup</button><button class="btn" data-act="restore">Restore backup</button>' + (!window.magnoliaPreview ? '<button class="btn ghost" data-act="logout">Sign out</button>' : '') : '';
+  $('#topActions').innerHTML = S.canWrite && S.ready ? '<button class="btn" data-act="profile">Working as '+esc(nameOf(S.myId))+'</button><button class="btn" data-act="import">Import</button>' + (dl ? '<button class="btn" data-act="export">Export</button>' : '') + '<button class="btn primary" data-act="addlead">+ Add lead</button><button class="btn" data-act="backup" title="Download all workspace records">Backup</button><button class="btn" data-act="restore">Restore backup</button>' + (!window.magnoliaPreview ? '<button class="btn ghost" data-act="logout">Sign out</button>' : '') : '';
 
 }
 
@@ -968,11 +949,11 @@ function drawerHtml(l) {
 
   if (S.canWrite) h += '<section><p class="subh">Log a touch</p><div class="logbtns">' +
 
-    ['voicemail', 'no_answer', 'spoke', 'email', 'text', 'note'].map(function (k) { return '<button class="btn sm' + (S.logging === k ? ' primary' : '') + '" data-act="startlog" data-t="' + k + '">' + LOGS[k].label + '</button>'; }).join('') + '</div>' +
+    ['voicemail', 'no_answer', 'spoke', 'interested', 'send_info', 'not_interested', 'email', 'text', 'note'].map(function (k) { return '<button class="btn sm' + (S.logging === k ? ' primary' : '') + '" data-act="startlog" data-t="' + k + '">' + LOGS[k].label + '</button>'; }).join('') + '</div>' +
 
-    (S.logging ? '<div class="panel" style="margin-top:10px"><label class="f">Note (optional)<textarea id="logNote" placeholder="What happened? Anything to remember?"></textarea></label>' +
+    (S.logging ? '<div class="panel" style="margin-top:10px"><label class="f">Outcome details (optional)<textarea id="logNote" placeholder="What happened? Anything to remember?"></textarea></label>' +
 
-      (LOGS[S.logging].days != null ? '<label class="f">Follow up on<input type="date" id="logFollow" value="' + addDays(LOGS[S.logging].days) + '"></label>' : '') +
+      (S.logging==='send_info'?'<p class="hint">This records a request for information. Prepare and send the message separately, then log it as emailed or texted.</p>':'') + (S.logging==='not_interested'?'<p class="hint">Saving closes this lead as Lost and clears its follow-up. Record any request not to be contacted again in the note.</p>':'') + (LOGS[S.logging].days != null ? '<label class="f">Follow up on<input type="date" id="logFollow" value="' + addDays(LOGS[S.logging].days) + '"></label>' : '') +
 
       '<div class="bl"><button class="btn primary" data-act="savelog">Save</button><button class="btn ghost" data-act="cancellog">Cancel</button></div></div>' : '') + '</section>';
 
@@ -1020,6 +1001,7 @@ function drawerHtml(l) {
 
     '<label class="f">Notes<textarea data-lf="notes"' + dis + '>' + esc(l.notes) + '</textarea></label></div></section>';
 
+  h += '<section><p class="subh">Walkthrough / quote checklist</p><p class="hint">Record confirmed details. Empty fields mean the scope still needs clarification.</p><div class="panel grid2">'+[['projectAddress','Project address','text'],['projectSqft','Approximate square footage','text'],['cleaningScope','Cleaning stages / surfaces','text'],['handoverDate','Target handover date','date'],['siteAccess','Access / trade readiness','text'],['decisionMaker','Decision maker / approval process','text']].map(function(x){return '<label class="f">'+x[1]+'<input type="'+x[2]+'" data-lf="'+x[0]+'" value="'+esc(l[x[0]]||'')+'"'+dis+'></label>';}).join('')+'</div></section>';
   h += '<section><p class="subh">History</p><ul class="tl" id="timeline">' + timelineHtml() + '</ul></section>';
 
   if (S.canWrite) h += '<div><button class="btn sm danger" data-act="dellead" id="delBtn">Delete this lead</button></div>';
@@ -1204,21 +1186,12 @@ function loadPeople() {
 
 }
 
-function ownerSearch(q) {
-
-  if (!userCap) return;
-
-  userCap.search(q).then(function (hits) {
-
-    var box = $('#ownerList'); if (!box) return;
-
-    box.innerHTML = hits.length ? hits.map(function (p) { S.people[p.id] = p; return '<button class="person" data-act="setowner" data-o="' + esc(p.id) + '"><img src="' + esc(p.avatarUrl) + '" alt="">' + esc(p.name) + (p.isMe ? ' (you)' : '') + '</button>'; }).join('') : '<span class="hint">No one found. This workspace has a single owner.</span>';
-
-    box.innerHTML += '<button class="person" data-act="setowner" data-o="">Unassigned</button>';
-
-  });
-
+function ownerSearch(q){
+ var box=$('#ownerList');if(!box)return;
+ box.innerHTML=[['owner','Bashar'],['wife','Wife'],['','Unassigned']].filter(function(x){return x[1].toLowerCase().includes(String(q||'').toLowerCase());}).map(function(x){return '<button class="person" data-act="setowner" data-o="'+x[0]+'">'+x[1]+'</button>';}).join('');
 }
+function workingProfile(){try{return JSON.parse(localStorage.getItem('magnolia-working-profile'))||{id:'owner',name:'Bashar'};}catch(e){return {id:'owner',name:'Bashar'};}}
+function profileModal(){closeDrawer();S.modal='profile';var p=workingProfile();modalShell('<h2>Who is working?</h2><p>Choose a work label for assignments and activity. Both labels use your existing shared workspace sign-in.</p><label class="f">Working profile<select id="workingId"><option value="owner"'+(p.id==='owner'?' selected':'')+'>Bashar</option><option value="wife"'+(p.id==='wife'?' selected':'')+'>Wife</option></select></label><label class="f">Your name for scripts<input id="workingName" maxlength="80" value="'+esc(p.name||'')+'" placeholder="Enter your first name"></label><p class="hint">This choice is remembered on this device. Enter your own name so drafts introduce the correct caller.</p><button class="btn primary" data-act="saveprofile">Use this profile</button><button class="btn" data-act="closemodal">Cancel</button>');}
 
 /* ---------- events ---------- */
 
@@ -1230,7 +1203,9 @@ document.addEventListener('click', function (e) {
 
   switch (act) {
 
-    case 'preparecall': callDraft.leadId=id;callDraft.mode=l&&l.stage==='quote'?'quote':l&&(l.sourceCalled||l.lastContact)?'followup':'first';callDraft.text=null;closeDrawer();S.tab='templates';refresh(true);window.scrollTo(0,0);break;
+    case 'preparecall': callDraft.channel='call';callDraft.leadId=id;callDraft.mode=l&&l.stage==='quote'?'quote':l&&(l.sourceCalled||l.lastContact)?'followup':'first';callDraft.text=null;closeDrawer();S.tab='templates';refresh(true);window.scrollTo(0,0);break;
+    case 'profile': profileModal();break;
+    case 'saveprofile': var pid=$('#workingId').value,pname=$('#workingName').value.trim();if(!pname){toast('Enter your name for scripts');break;}try{localStorage.setItem('magnolia-working-profile',JSON.stringify({id:pid,name:pname}));}catch(e){toast('Profile will last for this session only');}S.myId=pid;S.myName=pname;callDraft.text=null;closeModal();refresh(true);toast('Working profile updated');break;
     case 'copycall': if($('#callOutput'))copy($('#callOutput').value);break;
     case 'resetcall': regenerateCall();break;
     case 'tab': S.tab = el.getAttribute('data-t'); refresh(true); window.scrollTo(0, 0); break;
@@ -1249,7 +1224,7 @@ document.addEventListener('click', function (e) {
 
     case 'copyemail': if (l) copy(l.email); break;
 
-    case 'quicklog': if (l) { if(el.disabled)return;el.disabled=true; var t = el.getAttribute('data-t'); var fu = addDays(LOGS[t].days); logActivity(l, t, '', fu).then(function () { toast(LOGS[t].label + ' logged. Follow up ' + fmtDay(fu) + '.'); }).catch(fail); } break;
+    case 'quicklog': if (l) { if(el.disabled)return;el.disabled=true; var t = el.getAttribute('data-t'); var fu = LOGS[t].days==null?'':addDays(LOGS[t].days); logActivity(l, t, '', fu).then(function () { toast(LOGS[t].label + ' logged. Follow up ' + fmtDay(fu) + '.'); }).catch(fail); } break;
 
     case 'startlog': S.logging = el.getAttribute('data-t'); renderDrawer(true); setTimeout(function () { var n = $('#logNote'); if (n) n.focus(); }, 30); break;
 
@@ -1269,7 +1244,7 @@ document.addEventListener('click', function (e) {
 
     case 'pickowner': $('#ownerPick').innerHTML = '<div class="panel" style="margin-top:8px"><input class="field" id="ownerQ" placeholder="Choose owner" aria-label="Choose owner"><div class="people" id="ownerList"></div></div>'; ownerSearch(''); $('#ownerQ').focus(); break;
 
-    case 'setowner': saveLead(S.openId, { owner: el.getAttribute('data-o') || null }).catch(fail); loadPeople(); break;
+    case 'setowner': saveLead(S.openId, { owner: el.getAttribute('data-o') || null }).then(function(){ $('#ownerPick').innerHTML='';renderDrawer(true);toast('Assignment saved'); }).catch(fail); break;
 
     case 'addtpl': var k = el.getAttribute('data-k'); db.collection('templates').add({ name: 'New template', kind: k, subject: k === 'email' ? 'Subject' : '', body: '', order: Date.now() }).catch(fail); break;
 
@@ -1294,6 +1269,9 @@ document.addEventListener('change', function (e) {
 
   if (t.id === 'restoreFile') { var backupFile=t.files[0];if(!backupFile)return;if(backupFile.size>2000000){fail(new Error('Backup must be smaller than 2 MB'));return;}backupFile.text().then(function(text){var parsed=JSON.parse(text);$('#restoreInfo').textContent='Merging backup…';return window.magnoliaRestore(parsed.state||parsed);}).then(function(){closeModal();toast('Backup merged. Existing records preserved.');}).catch(function(e){var info=$('#restoreInfo');if(info)info.textContent=e.message;fail(e);}); }
   else if(t.id==='callLead'){callDraft.leadId=t.value;regenerateCall();}
+  else if(t.id==='workingId'){$('#workingName').value=t.value==='owner'?'Bashar':'';}
+  else if(t.id==='todayOwner'){S.todayOwner=t.value;refresh(true);}
+  else if(t.id==='callChannel'){callDraft.channel=t.value;regenerateCall();}
   else if(t.id==='callMode'){callDraft.mode=t.value;regenerateCall();}
   else if(t.id==='callGoal'){callDraft.goal=t.value;regenerateCall();}
   else if (t.id === 'fqueue') { S.f.queue = t.value; $('#leadList').innerHTML = leadListHtml(); }
@@ -1420,7 +1398,7 @@ function boot() {
 
     return Promise.all([me, cw]).then(function (v) {
 
-      S.myId = v[0].id; S.myName = v[0].name || ''; S.canWrite = v[1] !== false; S.people = {};
+      var wp=workingProfile(); S.myId = wp.id==='wife'?'wife':'owner'; S.myName = wp.name || '[Your name]'; S.canWrite = v[1] !== false; S.people = {};
 
       var onErr = function (e) { console.error(e); S.err = 'The pipeline could not load (' + (e && e.code || 'error') + '). Reload the page.'; refresh(true); };
 
@@ -1477,4 +1455,3 @@ boot();
 </script>
 
 </body></html>
-
