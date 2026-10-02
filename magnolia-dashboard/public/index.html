@@ -783,11 +783,36 @@ function leadListHtml() {
 
 }
 
+
+/* Personalised call playbooks. No external service or invented account research. */
+var CALL_MODES=[['first','First call · Find the right project'],['followup','Follow-up · Reopen the opportunity'],['quote','Quote follow-up · Clarify the decision'],['voicemail','Voicemail · Earn a callback']];
+var callDraft={leadId:'',mode:'first',goal:'walk',text:null};
+function generateCallScript(l,mode,goal){
+ var company=l.company||'your company', caller=S.myName||'Bashar', greeting=l.name?'Hi '+firstName(l)+',':'Hi,', builder=l.segment==='Home Builder', referral=l.segment==='Other' && /association/i.test(l.notes||''), quoted=l.stage==='quote';
+ var project=builder?'homes approaching completion':'projects approaching turnover';
+ var close=goal==='vendor'?'What is the process for getting Magnolia considered as a cleaning vendor? Who handles the paperwork, and what should I send them?':goal==='intro'?'Would a short service overview be useful? What email should I use, and when would be a good time to follow up after you review it?':'If there is a project that fits, would a brief walkthrough be useful so we can confirm scope and provide a quote? What day works for the site contact?';
+ var opening=greeting+' this is '+caller+' with Magnolia Construction Cleaning in Southaven. We handle rough, final and move-in-ready cleaning. Do you have 20 seconds for a quick question?';
+ if(mode==='followup')opening=greeting+' this is '+caller+' with Magnolia Construction Cleaning in Southaven. I’m checking back on cleaning support for '+company+'. Is now a good time for one quick question?';
+ if(mode==='quote' && quoted)opening=greeting+' this is '+caller+' with Magnolia Construction Cleaning. I’m calling about the cleaning quote for '+company+'. Did it reach the right person, and do you have a minute to discuss the next step?';
+ if(mode==='voicemail')return 'VOICEMAIL · ABOUT 20 SECONDS\n\nHi, this is '+caller+' with Magnolia Construction Cleaning in Southaven. I’m trying to reach the person who coordinates final cleaning for '+company+'. Could you point me to the right contact for '+project+'? My number is '+BIZ.phone+'. Again, '+caller+' at '+BIZ.phone+'. Thank you.\n\nNEXT STEP\nLog the voicemail and choose a follow-up date. Don’t log a conversation unless someone answered.';
+ if(referral)return 'OPENER\n'+opening+'\n\nREFERRAL QUESTION\nWho is the best person to speak with about introducing Magnolia to local builders and contractors in your association?\n\nDISCOVERY\nWhich member directory or event would help us meet superintendents and construction managers?\nAre there vendor introduction requirements or fees we should review?\n\nNEXT STEP\nMay I send a short overview to the appropriate contact? What email should I use?\n\nAFTER THE CALL\nRecord the contact, any costs mentioned and an agreed follow-up date. This is a referral organization, not a confirmed cleaning project.';
+ var question=mode==='quote' && quoted?'What still needs to happen before you choose the cleaning contractor?':builder?'Who coordinates the rough and final cleans for your homes, and are any approaching their completion date?':'Who coordinates the final clean before turnover, and are there any projects where you are reviewing cleaning vendors?';
+ var discovery=builder?['How many homes or phases need cleaning, and what is the expected completion window?','Do you need a rough clean, final clean, touch-up before closing, or more than one visit?','What has to be finished before the cleaning crew can start?']:['What is the project address, approximate square footage and handover date?','Is the scope rough clean, final clean, renovation clean or touch-up?','Which areas and surfaces are included, and when will the trades be finished?'];
+ if(mode==='quote' && quoted)discovery=['Is the scope or schedule different from what we discussed?','Is anything unclear about the quoted work or exclusions?','Who approves the decision, and when do you expect to choose?'];
+ return '1 · OPEN WITH PERMISSION\n'+opening+'\n[Pause. Let them answer.]\n\n2 · FIND THE RIGHT PERSON\nIf you reach the office: “Who handles post-construction cleaning for '+company+' — the superintendent, project manager or construction manager?”\nIf they ask why: “I’m checking whether Magnolia could be considered for '+project+'.”\n\n3 · START THE CONVERSATION\n'+question+'\n[Ask one question at a time. Listen before describing services.]\n\n4 · QUALIFY THE OPPORTUNITY\n'+discovery.join('\n')+'\nWho approves the cleaning contractor, and what is your vendor onboarding process?\nConfirm the address is within our 40-mile Southaven service area before agreeing to a visit.\n\n5 · CONNECT THE SERVICE TO THEIR ANSWER\n“Based on what you described, the next step would be to confirm the cleaning scope, access and timing so we can put together a clear quote.”\n\n6 · ASK FOR ONE NEXT STEP\n'+(mode==='quote' && quoted?'What would help you make the decision? If the scope is settled, can we agree on the next step and a date to check back?':close)+'\nRepeat the agreed contact, action and date before ending the call.\n\nIF THEY OBJECT\n“We already have a cleaner.” → “Understood. Do you ever consider a backup vendor for overflow or schedule changes? If so, who handles that?”\n“Just send information.” → “Absolutely. Which email should I use, and which service should I focus on? When would a short follow-up be helpful?”\n“How much?” → “It depends on the size, condition, scope and number of visits. Could we confirm those first so the quote reflects the actual work?”\n“I’m busy.” → “Understood. Is there a better time, or should I speak with someone else who coordinates cleaning?”\n“Not interested.” → “Understood, thank you for your time.” Respect requests not to contact them again and record the request.\n\nAFTER THE CALL\nLog the actual outcome. Record the decision maker, project address, scope, timing, approval process and the next action. Set the follow-up date you agreed on.';
+}
+function callGeneratorHtml(){
+ var lead=byId(callDraft.leadId), options=S.leads.slice().sort(function(a,b){return (a.company||a.name||'').localeCompare(b.company||b.name||'');});
+ var text=lead?(callDraft.text===null?generateCallScript(lead,callDraft.mode,callDraft.goal):callDraft.text):'';
+ return '<section class="dash-panel call-studio"><div class="eyebrow">Magnolia call playbooks</div><h1 style="font-size:32px;margin:8px 0">Know what to say. Know what to ask.</h1><p class="lede">Choose a lead and a template. Your script fills in automatically, ready to read or adjust before you call.</p><div class="grid2"><label class="f">Lead<select id="callLead"><option value="">Choose a company…</option>'+options.map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===callDraft.leadId?' selected':'')+'>'+esc(x.company||x.name)+'</option>';}).join('')+'</select></label><label class="f">Call template<select id="callMode">'+CALL_MODES.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===callDraft.mode?' selected':'')+'>'+esc(x[1])+'</option>';}).join('')+'</select></label><label class="f">Next-step goal<select id="callGoal">'+[['walk','Discuss a walkthrough'],['intro','Send an introduction'],['vendor','Ask about vendor onboarding']].map(function(x){return '<option value="'+x[0]+'"'+(x[0]===callDraft.goal?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></label></div>'+(lead?'<div class="preview-note"><b>'+esc(lead.company||lead.name)+'</b> · '+esc(stageOf(lead.stage).label)+'<br>'+esc(lastLine(lead))+(callDraft.mode==='quote'&&lead.stage!=='quote'?'<br>No quote is recorded for this lead; the script qualifies scope instead of claiming a quote was sent.':'')+'</div><details style="margin:12px 0"><summary>Review lead notes before calling</summary><p style="white-space:pre-line">'+esc(lead.notes||'No notes yet. Confirm the project and the right contact on the call.')+'</p></details><label class="f">Your generated script<textarea id="callOutput" style="min-height:520px;line-height:1.7;font-size:15px">'+esc(text)+'</textarea></label><div class="bl"><button class="btn" data-act="copycall">Copy script</button><button class="btn" data-act="resetcall">Regenerate</button>'+(lead.phone?'<a class="btn primary" href="'+esc(telHref(lead.phone))+'">Call '+esc(lead.phone)+'</a>':'<span class="hint">Add a phone number to call this lead.</span>')+'<button class="btn" data-act="open" data-id="'+esc(lead.id)+'">Open lead / log outcome</button></div><p class="hint">Generated from saved lead details and Magnolia’s call playbooks. Research notes are reminders to confirm, not claims to read as facts. Editing a script does not record a call.</p>':'<p class="hint">Select a lead to generate its script. You can also open any lead and choose Prepare call.</p>')+'</section>';
+}
+function regenerateCall(){callDraft.text=null;refresh(true);}
+
 function viewTemplates() {
 
   var kinds = [['email', 'Email'], ['call', 'Call opener'], ['voicemail', 'Voicemail'], ['text', 'Text message']];
 
-  var h = '<p class="lede">Templates fill in the lead\'s details automatically. Fields you can use: <code class="mf">{{first_name}}</code> <code class="mf">{{company}}</code> <code class="mf">{{my_name}}</code> <code class="mf">{{business_phone}}</code> <code class="mf">{{business_email}}</code>. Templates save to your private workspace.</p>';
+  var h = callGeneratorHtml() + '<h2 class="sec">Your saved templates</h2><p class="lede">Templates fill in the lead\'s details automatically. Fields you can use: <code class="mf">{{first_name}}</code> <code class="mf">{{company}}</code> <code class="mf">{{my_name}}</code> <code class="mf">{{business_phone}}</code> <code class="mf">{{business_email}}</code>. Templates save to your private workspace.</p>';
 
   if (S.canWrite) h += '<div class="bl" style="margin-bottom:16px">' + kinds.map(function (k) { return '<button class="btn sm" data-act="addtpl" data-k="' + k[0] + '">+ ' + k[1] + '</button>'; }).join('') + '</div>';
 
@@ -879,7 +904,7 @@ function renderView(full) {
 
   else if (S.tab === 'board') v.innerHTML = banner + viewBoard();
 
-  else if (S.tab === 'templates') { if (full || !v.querySelector('.tpl textarea:focus, .tpl input:focus')) v.innerHTML = banner + viewTemplates(); }
+  else if (S.tab === 'templates') { if (full || !v.querySelector('.tpl textarea:focus, .tpl input:focus, #callOutput:focus, .call-studio select:focus')) v.innerHTML = banner + viewTemplates(); }
 
   else if (S.tab === 'leads') { if (full || !$('#leadList')) v.innerHTML = banner + viewLeadsShell(); $('#leadList').innerHTML = leadListHtml(); }
 
@@ -928,6 +953,8 @@ function drawerHtml(l) {
     '<div class="kv"><span class="hint" style="width:52px">Web</span>' + (l.website ? '<a class="val" target="_blank" rel="noopener" href="' + esc(/^https?:/.test(l.website) ? l.website : 'https://' + l.website) + '">' + esc(l.website.replace(/^https?:\/\/(www\.)?/, '')) + '</a>' : '<span class="hint">Add a website below</span>') + '</div>' +
 
     '<div class="kv"><span class="hint" style="width:52px">Owner</span><span class="val" id="ownerName">' + avatar(l.owner) + ' ' + esc(nameOf(l.owner)) + '</span>' + (S.canWrite ? '<button class="btn sm" data-act="pickowner">Change</button>' : '') + '</div><div id="ownerPick"></div></div></section>';
+
+  h += '<section><button class="btn primary" data-act="preparecall" data-id="'+esc(l.id)+'">Prepare call</button><p class="hint">Generate a tailored script for this lead before dialing.</p></section>';
 
   h += '<section><p class="subh">Find the decision maker</p><div class="bl">' +
 
@@ -1203,6 +1230,9 @@ document.addEventListener('click', function (e) {
 
   switch (act) {
 
+    case 'preparecall': callDraft.leadId=id;callDraft.mode=l&&l.stage==='quote'?'quote':l&&(l.sourceCalled||l.lastContact)?'followup':'first';callDraft.text=null;closeDrawer();S.tab='templates';refresh(true);window.scrollTo(0,0);break;
+    case 'copycall': if($('#callOutput'))copy($('#callOutput').value);break;
+    case 'resetcall': regenerateCall();break;
     case 'tab': S.tab = el.getAttribute('data-t'); refresh(true); window.scrollTo(0, 0); break;
 
     case 'open': openLead(id); break;
@@ -1263,6 +1293,9 @@ document.addEventListener('change', function (e) {
   var t = e.target;
 
   if (t.id === 'restoreFile') { var backupFile=t.files[0];if(!backupFile)return;if(backupFile.size>2000000){fail(new Error('Backup must be smaller than 2 MB'));return;}backupFile.text().then(function(text){var parsed=JSON.parse(text);$('#restoreInfo').textContent='Merging backup…';return window.magnoliaRestore(parsed.state||parsed);}).then(function(){closeModal();toast('Backup merged. Existing records preserved.');}).catch(function(e){var info=$('#restoreInfo');if(info)info.textContent=e.message;fail(e);}); }
+  else if(t.id==='callLead'){callDraft.leadId=t.value;regenerateCall();}
+  else if(t.id==='callMode'){callDraft.mode=t.value;regenerateCall();}
+  else if(t.id==='callGoal'){callDraft.goal=t.value;regenerateCall();}
   else if (t.id === 'fqueue') { S.f.queue = t.value; $('#leadList').innerHTML = leadListHtml(); }
 
   else if (t.id === 'fstage') { S.f.stage = t.value; $('#leadList').innerHTML = leadListHtml(); }
@@ -1292,6 +1325,7 @@ document.addEventListener('change', function (e) {
 });
 
 document.addEventListener('input', function (e) {
+  if(e.target.id==='callOutput'){callDraft.text=e.target.value;return;}
 
   if (e.target.id === 'fq') { S.f.q = e.target.value; $('#leadList').innerHTML = leadListHtml(); }
 
