@@ -10,7 +10,7 @@ export function candidates(records){
     if(!input.company||!input.source||!/^https:\/\//.test(input.source)||!['General Contractor','Home Builder'].includes(input.segment))continue;
     const lat=Number(input.latitude),lon=Number(input.longitude);
     if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;
-    const rad=x=>x*Math.PI/180,a=Math.sin(rad(lat-34.98898)/2)**2+Math.cos(rad(34.98898))*Math.cos(rad(lat))*Math.sin(rad(lon+90.01259)/2)**2;
+    const rad=x=>x*Math.PI/180,a=Math.sin(rad(lat-34.9618)/2)**2+Math.cos(rad(34.9618))*Math.cos(rad(lat))*Math.sin(rad(lon+89.8295)/2)**2;
     if(3958.8*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))>40)continue;
     const record={company:input.company,name:input.name||'',phone:input.phone||'',email:input.email||'',website:input.website||'',segment:input.segment,source:input.source,notes:'Automatically sourced prospect. Confirm contact details and cleaning needs before outreach.',stage:'new',followUp:'',lastContact:'',lastType:'',sourceType:'automatic',verification:'Source supplied; not a confirmed job',latitude:lat,longitude:lon};
     try{validate('leads',record);}catch{continue;}
