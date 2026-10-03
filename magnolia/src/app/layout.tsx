@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { site } from '@/data/site';
 
-const where = site.serviceAreaConfirmed ? ` serving Southaven, Mississippi and communities within 40 miles` : '';
+const where = site.serviceAreaConfirmed ? ` serving ${site.serviceArea}` : '';
 const title = `Post-Construction Cleaning${site.serviceAreaConfirmed ? ` in ${site.serviceAreas[0]}` : ''} | Magnolia Construction Cleaning`;
 const description = `Magnolia Construction Cleaning LLC provides professional post-construction, rough, final, and move-in ready cleaning${where}. From construction dust to move-in ready. Request a free quote.`;
 
