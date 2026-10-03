@@ -11,11 +11,11 @@ export const site = {
   phone: '(662) 318-4048',
   email: EMAIL,
   hours: 'Monday – Sunday, 8:00 AM – 8:00 PM',
-  serviceArea: 'Southaven, Mississippi and surrounding communities within a 40-mile radius',
+  serviceArea: 'Olive Branch and surrounding areas within a 40-mile radius',
   // Only set true once you have CONFIRMED these areas. Drives SEO copy + schema.
   serviceAreaConfirmed: true,
-  serviceAreas: ['Southaven, Mississippi'], // confirmed: 40-mile radius from Southaven
-  geo: { lat: 34.9889, lng: -90.0126, radiusMeters: 64374 },
+  serviceAreas: ['Olive Branch, Mississippi'], // confirmed: 40-mile radius from Olive Branch
+  geo: { lat: 34.9618, lng: -89.8295, radiusMeters: 64374 },
   social: { TikTok: 'https://www.tiktok.com/@magnoliapostcleans', Instagram: '', Facebook: '', LinkedIn: '' } as Record<string, string>,
   // Where the quote form posts (Formspree / Netlify Forms / your API). See README.
   formEndpoint: 'https://api.web3forms.com/submit',
