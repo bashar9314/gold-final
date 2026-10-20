@@ -8,7 +8,7 @@ const sign=(data,password)=>createHmac('sha256',password).update(data).digest('h
 function sessionValid(req,password){const cookie=(req.headers.get('cookie')||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('magnolia_session='));if(!cookie)return false;const [expires,sig]=cookie.slice(17).split('.');return Number(expires)>Date.now()&&Number(expires)<Date.now()+86400001&&sig&&equal(sig,sign(expires,password));}
 export default async function handler(req){
   const password=process.env.DASHBOARD_PASSWORD;
-  if(!password||password.length<16)return reply({error:'Workspace setup needed: set DASHBOARD_PASSWORD in Netlify to a strong password of at least 16 characters.'},503);
+  if(!password||password.length<6)return reply({error:'Workspace setup needed: set DASHBOARD_PASSWORD in Netlify to a password of at least 6 characters.'},503);
   if(!['GET','POST'].includes(req.method))return reply({error:'Method not allowed'},405);
   if(req.method==='POST'&&req.headers.get('origin')!==new URL(req.url).origin)return reply({error:'Origin not allowed'},403);
   let body;
@@ -67,4 +67,5 @@ export default async function handler(req){
     return reply({error:'Workspace is busy. Try saving again.'},409);
   }catch{return reply({error:'Cloud storage unavailable. Try again shortly.'},503);}
 }
+
 
