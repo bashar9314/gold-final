@@ -394,7 +394,22 @@ var LOGS = {
 
 var stageOf = function (id) { return STAGES.filter(function (s) { return s.id === id; })[0] || STAGES[0]; };
 
-var isOpen = function (l) { return l.stage !== 'won' && l.stage !== 'lost'; };
+var isOpen = function (l) { return l.stage !== 'won' && l.stage !== 'lost' && !outreachBlocked(l); };
+
+/* ---------- lead qualification ---------- */
+var INTEREST = [['unknown','Interest unconfirmed'],['potential','Research fit · interest unconfirmed'],['interested','Interested · team-confirmed'],['not_interested','Not interested'],['dnc','Do not contact']];
+function interestOf(l){
+ var status=l.interestStatus||'unknown';
+ if(status==='interested'&&(!String(l.interestEvidence||'').trim()||!/^\d{4}-\d{2}-\d{2}$/.test(l.interestDate||'')||isNaN(Date.parse(l.interestDate+'T12:00:00Z'))||new Date(l.interestDate+'T12:00:00Z').toISOString().slice(0,10)!==l.interestDate||l.interestDate>today()))return 'unknown';
+ if(status==='unknown'&&l.lastType==='not_interested')return 'not_interested';
+ return INTEREST.some(function(x){return x[0]===status;})?status:'unknown';
+}
+function outreachBlocked(l){return ['not_interested','dnc'].includes(interestOf(l));}
+function interestLabel(l){return (INTEREST.find(function(x){return x[0]===interestOf(l);})||INTEREST[0])[1];}
+function interestChip(l){var k=interestOf(l);return '<span class="chip" style="--c:var(--'+(k==='interested'?'ok':outreachBlocked(l)?'bad':'muted')+')">'+esc(interestLabel(l))+'</span>';}
+function qualityPanel(l,dis){return '<section class="panel"><div class="panel-head"><h2 style="margin:0;font-size:23px">Cleaning opportunity</h2>'+interestChip(l)+'</div><p class="hint">A builder listing or active project shows possible fit. Confirmed interest requires an actual prospect response or inquiry.</p><label class="f">Interest status<select id="interestStatus"'+dis+'>'+INTEREST.map(function(x){return '<option value="'+x[0]+'"'+(interestOf(l)===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></label><label class="f">Evidence / what they actually said<textarea id="interestEvidence" maxlength="2000" placeholder="Who responded, how, and what cleaning help or next step did they request?"'+dis+'>'+esc(l.interestEvidence||'')+'</textarea></label><label class="f">Evidence date<input type="date" id="interestDate" max="'+today()+'" value="'+esc(l.interestDate||'')+'"'+dis+'></label><label class="f">Next agreed action<input id="nextAction" maxlength="1000" placeholder="e.g. Confirm scope with the site manager" value="'+esc(l.nextAction||'')+'"'+dis+'></label><button class="btn primary" data-act="savequalification"'+dis+'>Save qualification</button><p class="hint">Saving Not interested or Do not contact removes this lead from outreach queues and clears its follow-up. This does not log a call.</p><details><summary>Qualification questions</summary><ul><li>Do they need rough, final or renovation cleaning?</li><li>What is the project address, size and completion window?</li><li>Who selects and approves the cleaning company?</li><li>Are they considering Magnolia, and what did they agree to next?</li></ul></details></section>';}
+function leadBrief(l){return [l.company||l.name,'Owner: '+nameOf(l.owner),'Interest: '+interestLabel(l),'Evidence: '+(l.interestEvidence||'Not recorded'),'Evidence date: '+(l.interestDate||'Not recorded'),'Phone: '+(l.phone||'Missing'),'Area: '+(l.area||'Unconfirmed'),'Project: '+(l.projectAddress||'Unconfirmed'),'Scope: '+(l.cleaningScope||'Unconfirmed'),'Timing: '+(l.handoverDate||'Unconfirmed'),'Next action: '+(l.nextAction||'Not agreed'),'Follow-up: '+(l.followUp||'Not scheduled'),'Source: '+(l.source||'Not recorded')].join('\n');}
+function qualityDashboard(){var open=S.leads.filter(isOpen),interested=open.filter(function(l){return interestOf(l)==='interested';}),unconfirmed=open.filter(function(l){return ['unknown','potential'].includes(interestOf(l));});return '<section class="dash-panel"><div class="panel-head"><h2>Lead quality</h2><button class="btn sm" data-act="qualityview" data-q="interested">View interested leads →</button></div><div class="metric-pair"><div><b>'+interested.length+'</b><span>Interested · evidence recorded</span></div><div><b>'+unconfirmed.length+'</b><span>Interest still unconfirmed</span></div></div><p class="hint">'+open.filter(function(l){return !l.phone&&!l.email;}).length+' active prospects missing a phone and email · '+interested.filter(function(l){return !l.nextAction||!l.followUp;}).length+' interested leads need a next action or follow-up date.</p><p class="hint">Public directories and research do not prove buying interest. Only a real response or inquiry qualifies as confirmed interest.</p><div class="bl"><button class="btn sm" data-act="qualityview" data-q="unconfirmed">Qualify prospects</button><button class="btn sm" data-act="qualityview" data-q="blocked">Review outreach exclusions</button></div></section>';}
 
 /* ---------- helpers ---------- */
 
@@ -444,7 +459,7 @@ var S = {
 
   canWrite: true, ready: false, err: '', openId: null, drawerActs: [], logging: null, emailTpl: '', modal: null,
 
-  todayOwner: 'all', f: { q: '', stage: '', segment: '', owner: '', queue: '' }
+  todayOwner: 'all', f: { q: '', stage: '', segment: '', owner: '', queue: '', interest: '' }
 
 };
 
@@ -486,7 +501,7 @@ function newLead(d) {
 
   var now = new Date().toISOString();
 
-  return Object.assign({ company: '', name: '', title: '', phone: '', email: '', website: '', segment: '', source: '', notes: '', stage: 'new', owner: null, followUp: '', lastContact: '', lastType: '', createdAt: now, updatedAt: now, createdBy: S.myId }, d);
+  return Object.assign({ company: '', name: '', title: '', phone: '', email: '', website: '', segment: '', source: '', notes: '', stage: 'new', interestStatus: 'unknown', interestEvidence: '', interestDate: '', nextAction: '', owner: null, followUp: '', lastContact: '', lastType: '', createdAt: now, updatedAt: now, createdBy: S.myId }, d);
 
 }
 
@@ -506,6 +521,9 @@ function logActivity(lead, type, note, followUp) {
 
   var event = { type: type, note: note || '', by: S.myId, at: now };
 
+  if (type==='interested'&&!String(note||'').trim())return Promise.reject(new Error('Record what the prospect said before marking interest confirmed.'));
+  if(type==='interested'){patch.interestStatus='interested';patch.interestEvidence=note.trim();patch.interestDate=today();}
+  if(type==='not_interested'){patch.interestStatus='not_interested';patch.interestEvidence=note||'';patch.interestDate=today();}
   if (type !== 'note' && type !== 'stage') { patch.lastContact = now; patch.lastType = type; }
 
   if (followUp !== undefined) patch.followUp = followUp;
@@ -573,6 +591,7 @@ function filtered() {
 
   return S.leads.filter(function (l) {
 
+    var iq=interestOf(l);if(S.f.interest==='unconfirmed'&&!['unknown','potential'].includes(iq))return false;if(S.f.interest==='blocked'&&!outreachBlocked(l))return false;if(S.f.interest&&!['unconfirmed','blocked'].includes(S.f.interest)&&iq!==S.f.interest)return false;
     if (S.f.queue === 'fresh' && (l.sourceCalled || l.lastContact || l.stage !== 'new')) return false;
 
     if (S.f.queue === 'called' && !l.sourceCalled) return false;
@@ -592,7 +611,7 @@ function filtered() {
 
     if (q) {
 
-      var hay = [l.company, l.name, l.title, l.email, l.notes, l.source].join(' ').toLowerCase();
+      var hay = [l.company, l.name, l.title, l.email, l.notes, l.source, l.area, l.interestEvidence, l.nextAction].join(' ').toLowerCase();
 
       if (hay.indexOf(q) < 0 && !(qd.length > 2 && digits(l.phone).indexOf(qd) >= 0)) return false;
 
@@ -629,6 +648,7 @@ function lastLine(l) {
 }
 
 function quickButtons(l) {
+  if(outreachBlocked(l))return '<span class="hint">Outreach excluded</span>';
 
   var b = '<button class="btn sm" data-act="preparecall" data-id="'+esc(l.id)+'">Script</button>';
   b += l.phone ? '<a class="btn sm" href="' + esc(telHref(l.phone)) + '">Call</a>' : '';
@@ -652,7 +672,7 @@ function row(l) {
 
     '<div class="who"><b>' + esc(l.company || l.name || 'Untitled lead') + '</b><small>' + esc([l.name, l.title].filter(Boolean).join(' · ') || l.segment || '') + '</small></div>' +
 
-    '<div class="stagecell">' + (l.priority === 'High' ? '<span class="chip">Priority</span> ' : '') + stageChip(l.stage) + '</div><div class="duecell">' + dueChip(l) + '</div>' +
+    '<div class="stagecell">' + (l.priority === 'High' ? '<span class="chip">Priority</span> ' : '') + stageChip(l.stage) + '<br>' + interestChip(l) + '</div><div class="duecell">' + dueChip(l) + '</div>' +
 
     '<div class="last">' + esc(lastLine(l)) + '<br><small>Assigned: ' + esc(nameOf(l.owner)) + '</small> ' + avatar(l.owner) + '</div>' +
 
@@ -684,6 +704,7 @@ function workPriority(l){
  var t=today();
  if(l.followUp && l.followUp<t)return {rank:0,reason:'Overdue follow-up · '+fmtDay(l.followUp)};
  if(l.followUp===t)return {rank:1,reason:'Follow-up due today'};
+ if(interestOf(l)==='interested')return {rank:2,reason:'Interested · '+(l.nextAction||'Agree on the next step')};
  if(l.stage==='quote'&&!l.followUp)return {rank:2,reason:'Quote needs a next step'};
  if(l.sourceCalled&&!l.lastContact&&!l.followUp)return {rank:3,reason:'Prior call recorded · outcome/date unknown'};
  if(l.lastContact&&!l.followUp)return {rank:4,reason:'Contact logged · set a follow-up'};
@@ -694,10 +715,10 @@ function viewToday(){
  var t=today(),open=S.leads.filter(isOpen),scoped=open.filter(workScope),calls=['called','voicemail','no_answer','spoke','interested','send_info','not_interested'];
  var completed=S.acts.filter(function(a){var lead=byId(a.leadId);return calls.includes(a.type)&&new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(a.at))===t&&(S.todayOwner==='all'||(S.todayOwner==='mine'?a.by===S.myId:['owner','wife','sary'].includes(S.todayOwner)?a.by===S.todayOwner:lead&&workScope(lead)));}).length;
  var due=scoped.filter(function(l){return l.followUp&&l.followUp<=t;}),missing=scoped.filter(function(l){return !l.phone;}),unscheduled=scoped.filter(function(l){return !l.followUp;});
- var queue=scoped.filter(function(l){return l.phone&&(!l.followUp||l.followUp<=t);}).sort(function(a,b){return workPriority(a).rank-workPriority(b).rank||(a.followUp||'').localeCompare(b.followUp||'')||(a.company||'').localeCompare(b.company||'');}).slice(0,20);
+ var queue=scoped.filter(function(l){return l.phone&&(!l.followUp||l.followUp<=t);}).sort(function(a,b){return workPriority(a).rank-workPriority(b).rank||(interestOf(a)==='interested'?-1:0)-(interestOf(b)==='interested'?-1:0)||(a.followUp||'').localeCompare(b.followUp||'')||(a.company||'').localeCompare(b.company||'');}).slice(0,20);
  var h='<div class="hero"><div><div class="eyebrow">Your daily action plan</div><h1>One team. Clear next steps.</h1><p>Work assigned prospects, log actual outcomes, and agree on the next action.</p></div></div><div class="dash-panel"><label class="f">Show work for<select id="todayOwner">'+[['all','Whole team'],['mine','My assignments'],['owner','Bashar'],['wife','kiley'],['sary','Sary'],['none','Unassigned']].map(function(x){return '<option value="'+x[0]+'"'+(S.todayOwner===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></label><p class="hint">Working as '+esc(nameOf(S.myId))+'. Change your working profile in the header. Assign a lead in its record before calling to coordinate with each other.</p></div>';
  h+='<div class="stats">'+[[completed,'Calls logged today · goal 20'],[due.length,'Follow-ups due'],[unscheduled.length,'Need a follow-up date'],[missing.length,'Missing a phone']].map(function(x){return '<div class="stat"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>';}).join('')+'</div>';
- h+='<section class="section"><h2 class="sec">Your next '+queue.length+' calls</h2><p class="hint">Due commitments first, then quotes and unresolved contact history. Future follow-ups stay out of this list. Record an outcome only after a real call.</p>'+ (queue.length?queue.map(function(l){return '<div class="preview-note"><b>'+esc(workPriority(l).reason)+'</b>'+row(l)+'</div>';}).join(''):'<div class="empty"><h3>No calls ready in this view</h3><p>Review assignments, contact details or scheduled follow-ups.</p></div>')+'</section>';
+ h+='<section class="section"><h2 class="sec">Your next '+queue.length+' calls</h2><p class="hint">Due commitments first, then confirmed interest, quotes and unresolved contact history. Future follow-ups stay out of this list. Record an outcome only after a real call.</p>'+ (queue.length?queue.map(function(l){return '<div class="preview-note"><b>'+esc(workPriority(l).reason)+'</b>'+row(l)+'</div>';}).join(''):'<div class="empty"><h3>No calls ready in this view</h3><p>Review assignments, contact details or scheduled follow-ups.</p></div>')+'</section>';
  h+=group('Coming up in the next 7 days',scoped.filter(function(l){return l.followUp>t&&dayDiff(l.followUp,t)<=7;}).sort(function(a,b){return a.followUp.localeCompare(b.followUp);})) + group('Find the missing phone',missing,'Verify contact details before outreach.');
  h+='<section class="dash-panel"><h2>Team workload</h2>'+[['owner','Bashar'],['wife','kiley'],['sary','Sary'],['','Unassigned']].map(function(x){var ls=open.filter(function(l){return (l.owner||'')===x[0];});return '<div class="attention-item"><div><b>'+x[1]+'</b><small>'+ls.length+' active · '+ls.filter(function(l){return l.followUp&&l.followUp<=t;}).length+' due</small></div></div>';}).join('')+'</section>';
  return h;
@@ -731,10 +752,11 @@ function viewLeadsShell() {
 
   var opt = function (arr, cur, all) { return '<option value="">' + all + '</option>' + arr.map(function (x) { return '<option value="' + esc(x.v) + '"' + (cur === x.v ? ' selected' : '') + '>' + esc(x.t) + '</option>'; }).join(''); };
 
-  return '<div class="hero"><div><div class="eyebrow">Your contractor directory</div><h1>Your leads are here.</h1><p>Open a record to see contacts, source notes and follow-up history.</p></div></div>' + (window.magnoliaPreview ? '<div class="preview-note">Local workspace. Changes save in this browser when supported; use Backup to keep a copy. Cloud sync is not connected.</div>' : '') + '<div class="filters"><input type="search" id="fq" placeholder="Search company, name, phone, email, notes" value="' + esc(S.f.q) + '" aria-label="Search leads">' +
+  return '<div class="hero"><div><div class="eyebrow">Your prospect directory</div><h1>Your leads are here.</h1><p>Separate confirmed buying interest from prospects that still need qualification.</p></div></div>' + (window.magnoliaPreview ? '<div class="preview-note">Local workspace. Changes save in this browser when supported; use Backup to keep a copy. Cloud sync is not connected.</div>' : '') + '<div class="filters"><input type="search" id="fq" placeholder="Search company, name, phone, email, notes" value="' + esc(S.f.q) + '" aria-label="Search leads">' +
 
     '<select id="fqueue" aria-label="Filter outreach queue">' + opt([{v:'fresh',t:'Fresh prospects'},{v:'called',t:'Previously called'},{v:'missing',t:'Missing phone'},{v:'priority',t:'Priority prospects'}],S.f.queue,'All outreach queues') + '</select>' +
 
+    '<select id="finterest" aria-label="Filter by interest">' + opt([{v:'interested',t:'Interested · evidence recorded'},{v:'unconfirmed',t:'Interest unconfirmed'},{v:'potential',t:'Research fit only'},{v:'blocked',t:'Outreach excluded'}], S.f.interest, 'All interest levels') + '</select>' +
     '<select id="fstage" aria-label="Filter by stage">' + opt(STAGES.map(function (s) { return { v: s.id, t: s.label }; }), S.f.stage, 'All stages') + '</select>' +
 
     '<select id="fseg" aria-label="Filter by type">' + opt(SEGMENTS.map(function (s) { return { v: s, t: s }; }), S.f.segment, 'All types') + '</select>' +
@@ -762,6 +784,7 @@ function leadListHtml() {
 var CALL_MODES=[['first','First call · Find the right project'],['followup','Follow-up · Reopen the opportunity'],['quote','Quote follow-up · Clarify the decision'],['voicemail','Voicemail · Earn a callback']];
 var callDraft={leadId:'',mode:'first',goal:'walk',channel:'call',text:null};
 function generateCallScript(l,mode,goal){
+ if(outreachBlocked(l))return 'Outreach excluded. Review this lead’s qualification before preparing a call.';
  var company=l.company||'your company', caller=S.myName||'Bashar', greeting=l.name?'Hi '+firstName(l)+',':'Hi,', builder=l.segment==='Home Builder', referral=l.segment==='Other' && /association/i.test(l.notes||''), quoted=l.stage==='quote';
  var project=builder?'homes approaching completion':'projects approaching turnover';
  var close=goal==='vendor'?'What is the process for getting Magnolia considered as a cleaning vendor? Who handles the paperwork, and what should I send them?':goal==='intro'?'Would a short service overview be useful? What email should I use, and when would be a good time to follow up after you review it?':'If there is a project that fits, would a brief walkthrough be useful so we can confirm scope and provide a quote? What day works for the site contact?';
@@ -776,11 +799,12 @@ function generateCallScript(l,mode,goal){
  return '1 · OPEN WITH PERMISSION\n'+opening+'\n[Pause. Let them answer.]\n\n2 · FIND THE RIGHT PERSON\nIf you reach the office: “Who handles post-construction cleaning for '+company+' — the superintendent, project manager or construction manager?”\nIf they ask why: “I’m checking whether Magnolia could be considered for '+project+'.”\n\n3 · START THE CONVERSATION\n'+question+'\n[Ask one question at a time. Listen before describing services.]\n\n4 · QUALIFY THE OPPORTUNITY\n'+discovery.join('\n')+'\nWho approves the cleaning contractor, and what is your vendor onboarding process?\nConfirm the address is within our 40-mile Olive Branch service area before agreeing to a visit.\n\n5 · CONNECT THE SERVICE TO THEIR ANSWER\n“Based on what you described, the next step would be to confirm the cleaning scope, access and timing so we can put together a clear quote.”\n\n6 · ASK FOR ONE NEXT STEP\n'+(mode==='quote' && quoted?'What would help you make the decision? If the scope is settled, can we agree on the next step and a date to check back?':close)+'\nRepeat the agreed contact, action and date before ending the call.\n\nIF THEY OBJECT\n“We already have a cleaner.” → “Understood. Do you ever consider a backup vendor for overflow or schedule changes? If so, who handles that?”\n“Just send information.” → “Absolutely. Which email should I use, and which service should I focus on? When would a short follow-up be helpful?”\n“How much?” → “It depends on the size, condition, scope and number of visits. Could we confirm those first so the quote reflects the actual work?”\n“I’m busy.” → “Understood. Is there a better time, or should I speak with someone else who coordinates cleaning?”\n“Not interested.” → “Understood, thank you for your time.” Respect requests not to contact them again and record the request.\n\nAFTER THE CALL\nLog the actual outcome. Record the decision maker, project address, scope, timing, approval process and the next action. Set the follow-up date you agreed on.';
 }
 function callGeneratorHtml(){
- var lead=byId(callDraft.leadId), options=S.leads.slice().sort(function(a,b){return (a.company||a.name||'').localeCompare(b.company||b.name||'');});
+ var lead=byId(callDraft.leadId);if(lead&&outreachBlocked(lead))lead=null;var options=S.leads.filter(function(l){return !outreachBlocked(l);}).slice().sort(function(a,b){return (a.company||a.name||'').localeCompare(b.company||b.name||'');});
  var text=lead?(callDraft.text===null?(callDraft.channel==='call'?generateCallScript(lead,callDraft.mode,callDraft.goal):generateMessage(lead,callDraft.channel,callDraft.mode,callDraft.goal)):callDraft.text):'';
  return '<section class="dash-panel call-studio"><div class="eyebrow">Magnolia call playbooks</div><h1 style="font-size:32px;margin:8px 0">Know what to say. Know what to ask.</h1><p class="lede">Choose a lead and a template. Your script fills in automatically, ready to read or adjust before you call.</p><div class="grid2"><label class="f">Lead<select id="callLead"><option value="">Choose a company…</option>'+options.map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===callDraft.leadId?' selected':'')+'>'+esc(x.company||x.name)+'</option>';}).join('')+'</select></label><label class="f">Message format<select id="callChannel">'+[['call','Call script'],['email','Email draft'],['text','Text draft']].map(function(x){return '<option value="'+x[0]+'"'+(callDraft.channel===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></label><label class="f">Situation<select id="callMode">'+CALL_MODES.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===callDraft.mode?' selected':'')+'>'+esc(x[1])+'</option>';}).join('')+'</select></label><label class="f">Next-step goal<select id="callGoal">'+[['walk','Discuss a walkthrough'],['intro','Send an introduction'],['vendor','Ask about vendor onboarding']].map(function(x){return '<option value="'+x[0]+'"'+(x[0]===callDraft.goal?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></label></div>'+(lead?'<div class="preview-note"><b>'+esc(lead.company||lead.name)+'</b> · '+esc(stageOf(lead.stage).label)+'<br>'+esc(lastLine(lead))+(callDraft.mode==='quote'&&lead.stage!=='quote'?'<br>No quote is recorded for this lead; the script qualifies scope instead of claiming a quote was sent.':'')+'</div><details style="margin:12px 0"><summary>Review lead notes before calling</summary><p style="white-space:pre-line">'+esc(lead.notes||'No notes yet. Confirm the project and the right contact on the call.')+'</p></details><label class="f">Your generated script<textarea id="callOutput" style="min-height:520px;line-height:1.7;font-size:15px">'+esc(text)+'</textarea></label><div class="bl"><button class="btn" data-act="copycall">Copy script</button><button class="btn" data-act="resetcall">Regenerate</button>'+(lead.phone?'<a class="btn primary" href="'+esc(telHref(lead.phone))+'">Call '+esc(lead.phone)+'</a>':'<span class="hint">Add a phone number to call this lead.</span>')+'<button class="btn" data-act="open" data-id="'+esc(lead.id)+'">Open lead / log outcome</button></div><p class="hint">Generated from saved lead details and Magnolia’s call playbooks. Research notes are reminders to confirm, not claims to read as facts. Drafts are not sent automatically. Preparing a message does not record contact.</p>':'<p class="hint">Select a lead to generate its script. You can also open any lead and choose Prepare call.</p>')+'</section>';
 }
 function generateMessage(l,channel,mode,goal){
+ if(outreachBlocked(l))return 'Outreach excluded. Review this lead’s qualification before drafting a message.';
  var caller=S.myName||'[Your name]',company=l.company||'your company',greeting='Hi '+(firstName(l)||'there')+',',quoted=mode==='quote'&&l.stage==='quote';
  var intro=quoted?'I’m checking on the cleaning quote for '+company+'. Is there anything you need clarified before deciding on the next step?':mode==='followup'?'I’m checking back to see who coordinates post-construction cleaning for '+company+'.':'I’m '+caller+' with Magnolia Construction Cleaning in Olive Branch. We handle rough, final, move-in-ready and renovation cleaning.';
  var ask=quoted?'Who handles approval, and when would a follow-up be useful?':goal==='vendor'?'Who handles cleaning vendor onboarding, and what information should I send?':goal==='intro'?'May I send a short service overview to the person who coordinates cleaning?':'Do you have any projects approaching completion where a cleaning walkthrough would be useful?';
@@ -830,7 +854,8 @@ function viewDashboard() {
   if(window.magnoliaPreview)h+='<div class="preview-note">Local preview · Saved in this browser only. Cloud sync becomes available after Netlify deployment and sign-in.</div>';
 
   var automation=window.magnoliaAutomation||{},added=S.leads.filter(function(l){return l.sourceType==='automatic'&&l.discoveryDay===t;}).length;
-  h+='<section class="dash-panel"><div class="panel-head"><h2>Daily lead discovery</h2><span class="chip">Target: 10–15 / day</span></div><div class="metric-pair"><div><b>'+added+'</b><span>Actually added today</span></div><div><b>'+S.leads.filter(function(l){return l.sourceType==='automatic';}).length+'</b><span>Automatically sourced prospects</span></div></div><p class="hint">General contractors and home builders · within 40 miles of Olive Branch. '+esc(automation.configured ? (automation.message||'Daily source connected; waiting for first run.') : 'Setup needed: connect a lead source. Automatic additions are not active yet.')+'</p>'+(automation.date?'<p class="hint">Last run: '+esc(automation.date)+' · '+esc(automation.status||'')+'</p>':'')+'</section>';
+  h+='<section class="dash-panel"><div class="panel-head"><h2>Daily lead discovery</h2><span class="chip">Target: 15–25 / day</span></div><div class="metric-pair"><div><b>'+added+'</b><span>Actually added today</span></div><div><b>'+S.leads.filter(function(l){return l.sourceType==='automatic';}).length+'</b><span>Automatically sourced prospects</span></div></div><p class="hint">General contractors and home builders · within 40 miles of Olive Branch. '+esc(automation.configured ? (automation.message||'Daily source connected; waiting for first run.') : 'Built-in feed: not configured. Research batches added separately appear in the counts above.')+'</p>'+(automation.date?'<p class="hint">Last run: '+esc(automation.date)+' · '+esc(automation.status||'')+'</p>':'')+'</section>';
+  h+=qualityDashboard()+'<section class="dash-panel"><h2>Find buying signals</h2><p class="hint">Check current requests, cleaning scope, bid deadlines and vendor requirements before adding an opportunity. These portals do not establish interest in Magnolia.</p><div class="bl"><a class="btn sm" href="https://www.obms.us/1363/Bidding-Opportunities" target="_blank" rel="noopener">Olive Branch bids ↗</a><a class="btn sm" href="https://memphistn.gov/document-category/current-solicitations/" target="_blank" rel="noopener">Memphis solicitations ↗</a><a class="btn sm" href="https://www.memphishabitat.com/homebuying/contractors-new-homes" target="_blank" rel="noopener">Habitat bid room ↗</a></div></section>';
   h+='<div class="stats">'+[[open.length,'Active opportunities'],[quote,'Quotes awaiting a decision'],[won.length,'Won jobs'],[closed?Math.round(won.length/closed*100)+'%':'—','Win rate · closed leads']].map(function(x){return '<div class="stat"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>';}).join('')+'</div><div class="dashboard-grid"><div>';
 
   h+='<section class="dash-panel"><div class="panel-head"><h2>Pipeline progress</h2><button class="btn sm" data-act="tab" data-t="board">View pipeline →</button></div>'+STAGES.map(function(s){var n=S.leads.filter(function(l){return l.stage===s.id;}).length;return '<div class="bar-row" style="--c:var(--s-'+s.id+')"><span>'+esc(s.label)+'</span><div class="bar-track"><div class="bar-fill" style="width:'+(S.leads.length?n/S.leads.length*100:0)+'%"></div></div><b>'+n+'</b></div>';}).join('')+'<p class="hint">'+S.leads.length+' total leads · '+open.filter(function(l){return !l.followUp;}).length+' active leads without a follow-up date</p></section>';
@@ -923,11 +948,12 @@ function drawerHtml(l) {
 
   var dis = S.canWrite ? '' : ' disabled';
 
-  var h = '<div class="drawer-head"><div><h2>' + esc(l.company || l.name || 'Untitled lead') + '</h2><div class="bl" style="margin-top:6px">' + stageChip(l.stage) + dueChip(l) + '</div></div><button class="x" data-act="close" aria-label="Close">×</button></div><div class="drawer-body">';
+  var h = '<div class="drawer-head"><div><h2>' + esc(l.company || l.name || 'Untitled lead') + '</h2><div class="bl" style="margin-top:6px">' + stageChip(l.stage) + dueChip(l) + interestChip(l) + '</div></div><button class="x" data-act="close" aria-label="Close">×</button></div><div class="drawer-body">';
 
+  h += qualityPanel(l,dis)+'<section class="panel"><p class="subh">Research signal</p><p class="hint">Record a dated project notice or request for cleaning. An open bid indicates demand, not interest in Magnolia specifically.</p>'+[['researchSignal','Published project / cleaning request','text'],['signalURL','Evidence link','url'],['signalCheckedDate','Source checked on','date']].map(function(x){return '<label class="f">'+x[1]+'<input type="'+x[2]+'" data-lf="'+x[0]+'" value="'+esc(l[x[0]]||'')+'"'+dis+'></label>';}).join('')+'</section>'+'<button class="btn" data-act="copybrief">Copy team handoff brief</button>';
   h += '<section><p class="subh">Contact</p><div class="panel">' +
 
-    '<div class="kv"><span class="hint" style="width:52px">Phone</span>' + (l.phone ? '<span class="val">' + esc(l.phone) + '</span><button class="btn sm" data-act="copyphone" data-id="' + l.id + '">Copy</button><a class="btn sm" href="' + esc(telHref(l.phone)) + '">Call</a>' : '<span class="hint">Add a number below</span>') + '</div>' +
+    '<div class="kv"><span class="hint" style="width:52px">Phone</span>' + (l.phone ? '<span class="val">' + esc(l.phone) + '</span><button class="btn sm" data-act="copyphone" data-id="' + l.id + '">Copy</button>'+(!outreachBlocked(l)?'<a class="btn sm" href="'+esc(telHref(l.phone))+'">Call</a>':'<span class="hint">Outreach excluded</span>') : '<span class="hint">Add a number below</span>') + '</div>' +
 
     '<div class="kv"><span class="hint" style="width:52px">Email</span>' + (l.email ? '<span class="val">' + esc(l.email) + '</span><button class="btn sm" data-act="copyemail" data-id="' + l.id + '">Copy</button>' : '<span class="hint">Add an email below</span>') + '</div>' +
 
@@ -935,7 +961,7 @@ function drawerHtml(l) {
 
     '<div class="kv"><span class="hint" style="width:52px">Owner</span><span class="val" id="ownerName">' + avatar(l.owner) + ' ' + esc(nameOf(l.owner)) + '</span>' + (S.canWrite ? '<button class="btn sm" data-act="pickowner">Change</button>' : '') + '</div><div id="ownerPick"></div></div></section>';
 
-  h += '<section><button class="btn primary" data-act="preparecall" data-id="'+esc(l.id)+'">Prepare call</button><p class="hint">Generate a tailored script for this lead before dialing.</p></section>';
+  if(!outreachBlocked(l)) h += '<section><button class="btn primary" data-act="preparecall" data-id="'+esc(l.id)+'">Prepare call</button><p class="hint">Generate a tailored script for this lead before dialing.</p></section>';
 
   h += '<section><p class="subh">Find the decision maker</p><div class="bl">' +
 
@@ -951,13 +977,13 @@ function drawerHtml(l) {
 
     ['voicemail', 'no_answer', 'spoke', 'interested', 'send_info', 'not_interested', 'email', 'text', 'note'].map(function (k) { return '<button class="btn sm' + (S.logging === k ? ' primary' : '') + '" data-act="startlog" data-t="' + k + '">' + LOGS[k].label + '</button>'; }).join('') + '</div>' +
 
-    (S.logging ? '<div class="panel" style="margin-top:10px"><label class="f">Outcome details (optional)<textarea id="logNote" placeholder="What happened? Anything to remember?"></textarea></label>' +
+    (S.logging ? '<div class="panel" style="margin-top:10px"><label class="f">Outcome details (required for Interested)<textarea id="logNote" placeholder="What happened? Anything to remember?"></textarea></label>' +
 
-      (S.logging==='send_info'?'<p class="hint">This records a request for information. Prepare and send the message separately, then log it as emailed or texted.</p>':'') + (S.logging==='not_interested'?'<p class="hint">Saving closes this lead as Lost and clears its follow-up. Record any request not to be contacted again in the note.</p>':'') + (LOGS[S.logging].days != null ? '<label class="f">Follow up on<input type="date" id="logFollow" value="' + addDays(LOGS[S.logging].days) + '"></label>' : '') +
+      (S.logging==='send_info'?'<p class="hint">This records a request for information. Prepare and send the message separately, then log it as emailed or texted.</p>':'') + (S.logging==='not_interested'?'<p class="hint">Saving closes this lead as Lost and clears its follow-up. Record any request not to be contacted again in the note.</p>':'') + (LOGS[S.logging].days != null ? '<label class="f">Agreed follow-up date (optional)<input type="date" id="logFollow" value="' + esc(l.followUp||'') + '"></label>' : '') +
 
       '<div class="bl"><button class="btn primary" data-act="savelog">Save</button><button class="btn ghost" data-act="cancellog">Cancel</button></div></div>' : '') + '</section>';
 
-  h += '<section><p class="subh">Send an email</p>' + (emails.length ? '<div class="panel"><label class="f">Template<select id="etpl">' + emails.map(function (t) { return '<option value="' + t.id + '"' + (et && et.id === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') + '</select></label>' +
+  if(!outreachBlocked(l)) h += '<section><p class="subh">Send an email</p>' + (emails.length ? '<div class="panel"><label class="f">Template<select id="etpl">' + emails.map(function (t) { return '<option value="' + t.id + '"' + (et && et.id === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') + '</select></label>' +
 
     '<div class="preview" id="epreview"><b>' + esc(mergeFields(et.subject, l)) + '</b>\n\n' + esc(mergeFields(et.body, l)) + '</div>' +
 
@@ -1128,7 +1154,7 @@ function parseCSV(text) {
 
 var HEADMAP = { company: ['company', 'business', 'organization', 'account'], name: ['name', 'contact', 'contact name', 'full name'], first: ['first name', 'firstname', 'first'], last: ['last name', 'lastname', 'last'],
 
-  title: ['title', 'role', 'position'], phone: ['phone', 'phone number', 'mobile', 'cell', 'telephone'], email: ['email', 'e-mail', 'email address'], website: ['website', 'url', 'web site', 'site'], segment: ['type', 'segment', 'category'], sourceType:['sourcetype'], discoveryDay:['discoveryday'], sourceCalled:['sourcecalled'], priority:['priority'], area:['area'], verification:['verification'], source: ['source'], notes: ['notes', 'note', 'comments'], stage:['stage','status'], followUp:['followup','follow up','follow-up'], lastContact:['lastcontact','last contact'] };
+  title: ['title', 'role', 'position'], phone: ['phone', 'phone number', 'mobile', 'cell', 'telephone'], email: ['email', 'e-mail', 'email address'], website: ['website', 'url', 'web site', 'site'], segment: ['type', 'segment', 'category'], researchSignal:['researchsignal'],signalURL:['signalurl'],signalCheckedDate:['signalcheckeddate'],sourceType:['sourcetype'], discoveryDay:['discoveryday'], sourceCalled:['sourcecalled'], priority:['priority'], area:['area'], verification:['verification'], source: ['source'], notes: ['notes', 'note', 'comments'], stage:['stage','status'], followUp:['followup','follow up','follow-up'], lastContact:['lastcontact','last contact'] };
 
 function csvToLeads(text) {
 
@@ -1146,7 +1172,7 @@ function csvToLeads(text) {
 
     var seg = get(r, 'segment'); seg = SEGMENTS.filter(function (s) { return s.toLowerCase() === seg.toLowerCase(); })[0] || seg;
 
-    return { sourceType:get(r,'sourceType'), discoveryDay:get(r,'discoveryDay'), sourceCalled: /^(true|yes|1)$/i.test(get(r,'sourceCalled')), priority:get(r,'priority'), area:get(r,'area'), verification:get(r,'verification'), company: get(r, 'company'), name: nm, title: get(r, 'title'), phone: get(r, 'phone'), email: get(r, 'email'), website: get(r, 'website'), segment: seg, source: get(r, 'source'), notes: get(r, 'notes'), stage: (STAGES.find(function(x){return x.id === get(r,'stage').toLowerCase() || x.label.toLowerCase() === get(r,'stage').toLowerCase();}) || STAGES[0]).id, followUp: /^\d{4}-\d{2}-\d{2}$/.test(get(r,'followUp')) ? get(r,'followUp') : '', lastContact: get(r,'lastContact') && !isNaN(Date.parse(get(r,'lastContact'))) ? new Date(get(r,'lastContact')).toISOString() : '' };
+    return { researchSignal:get(r,'researchSignal'),signalURL:get(r,'signalURL'),signalCheckedDate:get(r,'signalCheckedDate'),sourceType:get(r,'sourceType'), discoveryDay:get(r,'discoveryDay'), sourceCalled: /^(true|yes|1)$/i.test(get(r,'sourceCalled')), priority:get(r,'priority'), area:get(r,'area'), verification:get(r,'verification'), company: get(r, 'company'), name: nm, title: get(r, 'title'), phone: get(r, 'phone'), email: get(r, 'email'), website: get(r, 'website'), segment: seg, source: get(r, 'source'), notes: get(r, 'notes'), stage: (STAGES.find(function(x){return x.id === get(r,'stage').toLowerCase() || x.label.toLowerCase() === get(r,'stage').toLowerCase();}) || STAGES[0]).id, followUp: /^\d{4}-\d{2}-\d{2}$/.test(get(r,'followUp')) ? get(r,'followUp') : '', lastContact: get(r,'lastContact') && !isNaN(Date.parse(get(r,'lastContact'))) ? new Date(get(r,'lastContact')).toISOString() : '' };
 
   }).filter(function (l) { return l.company || l.name || l.phone || l.email; });
 
@@ -1203,7 +1229,10 @@ document.addEventListener('click', function (e) {
 
   switch (act) {
 
-    case 'preparecall': callDraft.channel='call';callDraft.leadId=id;callDraft.mode=l&&l.stage==='quote'?'quote':l&&(l.sourceCalled||l.lastContact)?'followup':'first';callDraft.text=null;closeDrawer();S.tab='templates';refresh(true);window.scrollTo(0,0);break;
+    case 'qualityview': S.f.interest=el.getAttribute('data-q');S.f.q='';S.f.stage='';S.f.queue='';S.f.owner='';S.f.segment='';S.tab='leads';refresh(true);break;
+    case 'copybrief': if(l)copy(leadBrief(l));break;
+    case 'savequalification': if(l&&!el.disabled){var status=$('#interestStatus').value,evidence=$('#interestEvidence').value.trim(),evidenceDate=$('#interestDate').value;if(status==='interested'&&(!evidence||!evidenceDate)){toast('Add the actual response and its date to confirm interest.');break;}if(evidenceDate&&evidenceDate>today()){toast('Evidence date cannot be in the future.');break;}var qp={interestStatus:status,interestEvidence:evidence,interestDate:evidenceDate,nextAction:$('#nextAction').value.trim(),updatedAt:new Date().toISOString()};if(['not_interested','dnc'].includes(status))qp.followUp='';el.disabled=true;window.magnoliaLog(l.id,{type:'qualification',note:'Qualification: '+(INTEREST.find(function(x){return x[0]===status;})||INTEREST[0])[1]+(evidence?' — '+evidence:''),by:S.myId,at:qp.updatedAt},qp).then(function(){renderDrawer(true);toast('Qualification saved');}).catch(function(e){el.disabled=false;fail(e);});}break;
+    case 'preparecall': if(l&&outreachBlocked(l)){toast('This lead is excluded from outreach.');break;} callDraft.channel='call';callDraft.leadId=id;callDraft.mode=l&&l.stage==='quote'?'quote':l&&(l.sourceCalled||l.lastContact)?'followup':'first';callDraft.text=null;closeDrawer();S.tab='templates';refresh(true);window.scrollTo(0,0);break;
     case 'profile': profileModal();break;
     case 'saveprofile': var pid=$('#workingId').value,pname=$('#workingName').value.trim();if(!pname){toast('Enter your name for scripts');break;}try{localStorage.setItem('magnolia-working-profile',JSON.stringify({id:pid,name:pname}));}catch(e){toast('Profile will last for this session only');}S.myId=pid;S.myName=pname;callDraft.text=null;closeModal();refresh(true);toast('Working profile updated');break;
     case 'copycall': if($('#callOutput'))copy($('#callOutput').value);break;
@@ -1224,7 +1253,7 @@ document.addEventListener('click', function (e) {
 
     case 'copyemail': if (l) copy(l.email); break;
 
-    case 'quicklog': if (l) { if(el.disabled)return;el.disabled=true; var t = el.getAttribute('data-t'); var fu = LOGS[t].days==null?'':addDays(LOGS[t].days); logActivity(l, t, '', fu).then(function () { toast(LOGS[t].label + ' logged. Follow up ' + fmtDay(fu) + '.'); }).catch(fail); } break;
+    case 'quicklog': if(l&&!outreachBlocked(l)){var quickType=el.getAttribute('data-t');openLead(l.id);S.logging=quickType;renderDrawer(true);}break;
 
     case 'startlog': S.logging = el.getAttribute('data-t'); renderDrawer(true); setTimeout(function () { var n = $('#logNote'); if (n) n.focus(); }, 30); break;
 
@@ -1270,6 +1299,7 @@ document.addEventListener('change', function (e) {
   if (t.id === 'restoreFile') { var backupFile=t.files[0];if(!backupFile)return;if(backupFile.size>2000000){fail(new Error('Backup must be smaller than 2 MB'));return;}backupFile.text().then(function(text){var parsed=JSON.parse(text);$('#restoreInfo').textContent='Merging backup…';return window.magnoliaRestore(parsed.state||parsed);}).then(function(){closeModal();toast('Backup merged. Existing records preserved.');}).catch(function(e){var info=$('#restoreInfo');if(info)info.textContent=e.message;fail(e);}); }
   else if(t.id==='callLead'){callDraft.leadId=t.value;regenerateCall();}
   else if(t.id==='workingId'){$('#workingName').value={owner:'Bashar',wife:'kiley',sary:'Sary'}[t.value]||'';}
+  else if(t.id==='finterest'){S.f.interest=t.value;$('#leadList').innerHTML=leadListHtml();}
   else if(t.id==='todayOwner'){S.todayOwner=t.value;refresh(true);}
   else if(t.id==='callChannel'){callDraft.channel=t.value;regenerateCall();}
   else if(t.id==='callMode'){callDraft.mode=t.value;regenerateCall();}
@@ -1364,7 +1394,7 @@ function exportCSV() {
 
   if (!dl) return;
 
-  var cols = ['sourceCalled', 'priority', 'area', 'verification', 'sourceType', 'discoveryDay', 'company', 'name', 'title', 'phone', 'email', 'website', 'segment', 'source', 'stage', 'followUp', 'lastContact', 'notes'];
+  var cols = ['interestStatus','interestEvidence','interestDate','nextAction','owner','projectAddress','projectSqft','cleaningScope','handoverDate','decisionMaker','researchSignal','signalURL','signalCheckedDate','sourceCalled', 'priority', 'area', 'verification', 'sourceType', 'discoveryDay', 'company', 'name', 'title', 'phone', 'email', 'website', 'segment', 'source', 'stage', 'followUp', 'lastContact', 'notes'];
 
   var q = function (v) { v = String(v == null ? '' : v); if (/^[=+@\-\t\r]/.test(v)) v = "'" + v; return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
 
@@ -1455,4 +1485,5 @@ boot();
 </script>
 
 </body></html>
+
 
