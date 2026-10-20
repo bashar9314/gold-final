@@ -535,7 +535,7 @@ function setStage(lead, stage) {
 
 var byId = function (id) { return S.leads.filter(function (l) { return l.id === id; })[0]; };
 
-function nameOf(id) { if (!id) return 'Unassigned'; if(id==='wife')return 'Wife'; if(id==='owner')return 'Bashar'; var p = S.people[id]; return (p && p.name) || (id === S.myId ? 'You' : 'Teammate'); }
+function nameOf(id) { if (!id) return 'Unassigned'; if(id==='wife')return 'kiley'; if(id==='sary')return 'Sary'; if(id==='owner')return 'Bashar'; var p = S.people[id]; return (p && p.name) || (id === S.myId ? 'You' : 'Teammate'); }
 
 function avatar(id) {
 
@@ -588,7 +588,7 @@ function filtered() {
     if (S.f.owner === 'me' && l.owner !== S.myId) return false;
 
     if (S.f.owner === 'none' && l.owner) return false;
-    if (['owner','wife'].includes(S.f.owner) && l.owner!==S.f.owner) return false;
+    if (['owner','wife','sary'].includes(S.f.owner) && l.owner!==S.f.owner) return false;
 
     if (q) {
 
@@ -692,14 +692,14 @@ function workPriority(l){
 function workScope(l){return S.todayOwner==='all'||(S.todayOwner==='mine'?l.owner===S.myId:S.todayOwner==='none'?!l.owner:l.owner===S.todayOwner);}
 function viewToday(){
  var t=today(),open=S.leads.filter(isOpen),scoped=open.filter(workScope),calls=['called','voicemail','no_answer','spoke','interested','send_info','not_interested'];
- var completed=S.acts.filter(function(a){var lead=byId(a.leadId);return calls.includes(a.type)&&new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(a.at))===t&&(S.todayOwner==='all'||(S.todayOwner==='mine'?a.by===S.myId:['owner','wife'].includes(S.todayOwner)?a.by===S.todayOwner:lead&&workScope(lead)));}).length;
+ var completed=S.acts.filter(function(a){var lead=byId(a.leadId);return calls.includes(a.type)&&new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(a.at))===t&&(S.todayOwner==='all'||(S.todayOwner==='mine'?a.by===S.myId:['owner','wife','sary'].includes(S.todayOwner)?a.by===S.todayOwner:lead&&workScope(lead)));}).length;
  var due=scoped.filter(function(l){return l.followUp&&l.followUp<=t;}),missing=scoped.filter(function(l){return !l.phone;}),unscheduled=scoped.filter(function(l){return !l.followUp;});
  var queue=scoped.filter(function(l){return l.phone&&(!l.followUp||l.followUp<=t);}).sort(function(a,b){return workPriority(a).rank-workPriority(b).rank||(a.followUp||'').localeCompare(b.followUp||'')||(a.company||'').localeCompare(b.company||'');}).slice(0,20);
- var h='<div class="hero"><div><div class="eyebrow">Your daily action plan</div><h1>One team. Clear next steps.</h1><p>Work assigned prospects, log actual outcomes, and agree on the next action.</p></div></div><div class="dash-panel"><label class="f">Show work for<select id="todayOwner">'+[['all','Whole team'],['mine','My assignments'],['owner','Bashar'],['wife','Wife'],['none','Unassigned']].map(function(x){return '<option value="'+x[0]+'"'+(S.todayOwner===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></label><p class="hint">Working as '+esc(nameOf(S.myId))+'. Change your working profile in the header. Assign a lead in its record before calling to coordinate with each other.</p></div>';
+ var h='<div class="hero"><div><div class="eyebrow">Your daily action plan</div><h1>One team. Clear next steps.</h1><p>Work assigned prospects, log actual outcomes, and agree on the next action.</p></div></div><div class="dash-panel"><label class="f">Show work for<select id="todayOwner">'+[['all','Whole team'],['mine','My assignments'],['owner','Bashar'],['wife','kiley'],['sary','Sary'],['none','Unassigned']].map(function(x){return '<option value="'+x[0]+'"'+(S.todayOwner===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></label><p class="hint">Working as '+esc(nameOf(S.myId))+'. Change your working profile in the header. Assign a lead in its record before calling to coordinate with each other.</p></div>';
  h+='<div class="stats">'+[[completed,'Calls logged today · goal 20'],[due.length,'Follow-ups due'],[unscheduled.length,'Need a follow-up date'],[missing.length,'Missing a phone']].map(function(x){return '<div class="stat"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>';}).join('')+'</div>';
  h+='<section class="section"><h2 class="sec">Your next '+queue.length+' calls</h2><p class="hint">Due commitments first, then quotes and unresolved contact history. Future follow-ups stay out of this list. Record an outcome only after a real call.</p>'+ (queue.length?queue.map(function(l){return '<div class="preview-note"><b>'+esc(workPriority(l).reason)+'</b>'+row(l)+'</div>';}).join(''):'<div class="empty"><h3>No calls ready in this view</h3><p>Review assignments, contact details or scheduled follow-ups.</p></div>')+'</section>';
  h+=group('Coming up in the next 7 days',scoped.filter(function(l){return l.followUp>t&&dayDiff(l.followUp,t)<=7;}).sort(function(a,b){return a.followUp.localeCompare(b.followUp);})) + group('Find the missing phone',missing,'Verify contact details before outreach.');
- h+='<section class="dash-panel"><h2>Team workload</h2>'+[['owner','Bashar'],['wife','Wife'],['','Unassigned']].map(function(x){var ls=open.filter(function(l){return (l.owner||'')===x[0];});return '<div class="attention-item"><div><b>'+x[1]+'</b><small>'+ls.length+' active · '+ls.filter(function(l){return l.followUp&&l.followUp<=t;}).length+' due</small></div></div>';}).join('')+'</section>';
+ h+='<section class="dash-panel"><h2>Team workload</h2>'+[['owner','Bashar'],['wife','kiley'],['sary','Sary'],['','Unassigned']].map(function(x){var ls=open.filter(function(l){return (l.owner||'')===x[0];});return '<div class="attention-item"><div><b>'+x[1]+'</b><small>'+ls.length+' active · '+ls.filter(function(l){return l.followUp&&l.followUp<=t;}).length+' due</small></div></div>';}).join('')+'</section>';
  return h;
 }
 
@@ -739,7 +739,7 @@ function viewLeadsShell() {
 
     '<select id="fseg" aria-label="Filter by type">' + opt(SEGMENTS.map(function (s) { return { v: s, t: s }; }), S.f.segment, 'All types') + '</select>' +
 
-    '<select id="fown" aria-label="Filter by owner">' + opt([{ v: 'me', t: 'Mine' }, { v: 'owner', t: 'Bashar' }, { v: 'wife', t: 'Wife' }, { v: 'none', t: 'Unassigned' }], S.f.owner, 'Anyone') + '</select>' +
+    '<select id="fown" aria-label="Filter by owner">' + opt([{ v: 'me', t: 'Mine' }, { v: 'owner', t: 'Bashar' }, { v: 'wife', t: 'kiley' }, { v: 'sary', t: 'Sary' }, { v: 'none', t: 'Unassigned' }], S.f.owner, 'Anyone') + '</select>' +
 
     '<span style="flex:1"></span>' + (S.canWrite && S.ready ? '<button class="btn primary" data-act="addlead">+ Add lead</button>' : '') + '</div><div id="leadList"></div>';
 
@@ -1188,10 +1188,10 @@ function loadPeople() {
 
 function ownerSearch(q){
  var box=$('#ownerList');if(!box)return;
- box.innerHTML=[['owner','Bashar'],['wife','Wife'],['','Unassigned']].filter(function(x){return x[1].toLowerCase().includes(String(q||'').toLowerCase());}).map(function(x){return '<button class="person" data-act="setowner" data-o="'+x[0]+'">'+x[1]+'</button>';}).join('');
+ box.innerHTML=[['owner','Bashar'],['wife','kiley'],['sary','Sary'],['','Unassigned']].filter(function(x){return x[1].toLowerCase().includes(String(q||'').toLowerCase());}).map(function(x){return '<button class="person" data-act="setowner" data-o="'+x[0]+'">'+x[1]+'</button>';}).join('');
 }
-function workingProfile(){try{return JSON.parse(localStorage.getItem('magnolia-working-profile'))||{id:'owner',name:'Bashar'};}catch(e){return {id:'owner',name:'Bashar'};}}
-function profileModal(){closeDrawer();S.modal='profile';var p=workingProfile();modalShell('<h2>Who is working?</h2><p>Choose a work label for assignments and activity. Both labels use your existing shared workspace sign-in.</p><label class="f">Working profile<select id="workingId"><option value="owner"'+(p.id==='owner'?' selected':'')+'>Bashar</option><option value="wife"'+(p.id==='wife'?' selected':'')+'>Wife</option></select></label><label class="f">Your name for scripts<input id="workingName" maxlength="80" value="'+esc(p.name||'')+'" placeholder="Enter your first name"></label><p class="hint">This choice is remembered on this device. Enter your own name so drafts introduce the correct caller.</p><button class="btn primary" data-act="saveprofile">Use this profile</button><button class="btn" data-act="closemodal">Cancel</button>');}
+function workingProfile(){try{var p=JSON.parse(localStorage.getItem('magnolia-working-profile'))||{id:'owner',name:'Bashar'};if(p.id==='wife'&&(!p.name||p.name==='Wife'))p.name='kiley';return p;}catch(e){return {id:'owner',name:'Bashar'};}}
+function profileModal(){closeDrawer();S.modal='profile';var p=workingProfile();modalShell('<h2>Who is working?</h2><p>Choose a work label for assignments and activity. All profiles use your existing shared workspace sign-in.</p><label class="f">Working profile<select id="workingId"><option value="owner"'+(p.id==='owner'?' selected':'')+'>Bashar</option><option value="wife"'+(p.id==='wife'?' selected':'')+'>kiley</option><option value="sary"'+(p.id==='sary'?' selected':'')+'>Sary</option></select></label><label class="f">Your name for scripts<input id="workingName" maxlength="80" value="'+esc(p.name||'')+'" placeholder="Enter your first name"></label><p class="hint">This choice is remembered on this device. Enter your own name so drafts introduce the correct caller.</p><button class="btn primary" data-act="saveprofile">Use this profile</button><button class="btn" data-act="closemodal">Cancel</button>');}
 
 /* ---------- events ---------- */
 
@@ -1269,7 +1269,7 @@ document.addEventListener('change', function (e) {
 
   if (t.id === 'restoreFile') { var backupFile=t.files[0];if(!backupFile)return;if(backupFile.size>2000000){fail(new Error('Backup must be smaller than 2 MB'));return;}backupFile.text().then(function(text){var parsed=JSON.parse(text);$('#restoreInfo').textContent='Merging backup…';return window.magnoliaRestore(parsed.state||parsed);}).then(function(){closeModal();toast('Backup merged. Existing records preserved.');}).catch(function(e){var info=$('#restoreInfo');if(info)info.textContent=e.message;fail(e);}); }
   else if(t.id==='callLead'){callDraft.leadId=t.value;regenerateCall();}
-  else if(t.id==='workingId'){$('#workingName').value=t.value==='owner'?'Bashar':'';}
+  else if(t.id==='workingId'){$('#workingName').value={owner:'Bashar',wife:'kiley',sary:'Sary'}[t.value]||'';}
   else if(t.id==='todayOwner'){S.todayOwner=t.value;refresh(true);}
   else if(t.id==='callChannel'){callDraft.channel=t.value;regenerateCall();}
   else if(t.id==='callMode'){callDraft.mode=t.value;regenerateCall();}
@@ -1398,7 +1398,7 @@ function boot() {
 
     return Promise.all([me, cw]).then(function (v) {
 
-      var wp=workingProfile(); S.myId = wp.id==='wife'?'wife':'owner'; S.myName = wp.name || '[Your name]'; S.canWrite = v[1] !== false; S.people = {};
+      var wp=workingProfile(); S.myId = ['owner','wife','sary'].includes(wp.id)?wp.id:'owner'; S.myName = wp.id==='wife'&&(!wp.name||wp.name==='Wife')?'kiley':wp.name||nameOf(S.myId); S.canWrite = v[1] !== false; S.people = {};
 
       var onErr = function (e) { console.error(e); S.err = 'The pipeline could not load (' + (e && e.code || 'error') + '). Reload the page.'; refresh(true); };
 
@@ -1455,3 +1455,4 @@ boot();
 </script>
 
 </body></html>
+
