@@ -8,11 +8,16 @@ export function validate(collection, data, partial = false) {
   }
   if(collection==='leads') {
     if(!partial && !String(data.company||data.name||'').trim()) throw new Error('Enter a company or contact name');
+    if(data.interestStatus!==undefined&&!['unknown','potential','interested','not_interested','dnc'].includes(data.interestStatus))throw new Error('Choose a valid interest status');
+    if(data.interestStatus==='interested'&&(!String(data.interestEvidence||'').trim()||!data.interestDate))throw new Error('Confirmed interest requires the actual prospect response and evidence date');
+    if(data.interestDate&&(!/^\d{4}-\d{2}-\d{2}$/.test(data.interestDate)||isNaN(Date.parse(data.interestDate+'T12:00:00Z'))||new Date(data.interestDate+'T12:00:00Z').toISOString().slice(0,10)!==data.interestDate||data.interestDate>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())))throw new Error('Choose a valid evidence date, today or earlier');
     if(data.stage!==undefined&&!stages.has(data.stage)) throw new Error('Choose a valid stage');
     if(data.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) throw new Error('Enter a valid email address');
+    if(data.signalURL&&!/^https?:\/\//i.test(data.signalURL))throw new Error('Evidence link must start with https:// or http://');
     if(data.website&&!/^https?:\/\//i.test(data.website)) throw new Error('Website must start with https:// or http://');
     if(data.followUp&&(!/^\d{4}-\d{2}-\d{2}$/.test(data.followUp)||new Date(data.followUp+'T12:00:00Z').toISOString().slice(0,10)!==data.followUp)) throw new Error('Choose a valid follow-up date');
   }
   if(collection==='activity'&&!partial&&(!data.leadId||!data.type||!data.at)) throw new Error('Invalid activity');
   if(collection==='templates'&&data.kind!==undefined&&!['email','call','voicemail','text'].includes(data.kind)) throw new Error('Choose a valid template type');
 }
+
