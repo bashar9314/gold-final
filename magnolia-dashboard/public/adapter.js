@@ -18,7 +18,7 @@
   function login() {
     return new Promise(resolve=>{
       const view=document.getElementById('view');
-      view.innerHTML='<form class="login"><div class="eyebrow">Private workspace</div><h1>Welcome to Magnolia</h1><p class="hint">Sign in to access your leads and follow-ups.</p><label class="f">Workspace password<input type="password" class="field" autocomplete="current-password" required minlength="16"></label><button class="btn primary">Open workspace</button><p class="hint" role="alert" id="loginError"></p></form>';
+      view.innerHTML='<form class="login"><div class="eyebrow">Private workspace</div><h1>Welcome to Magnolia</h1><p class="hint">Sign in to access your leads and follow-ups.</p><label class="f">Workspace password<input type="password" class="field" autocomplete="current-password" required minlength="6"></label><button class="btn primary">Open workspace</button><p class="hint" role="alert" id="loginError"></p></form>';
       const form=view.querySelector('form');
       form.onsubmit=async e=>{e.preventDefault();e.stopImmediatePropagation();const button=form.querySelector('button');button.disabled=true;try {await request('POST',{action:'login',password:form.querySelector('input').value});resolve();}catch(err){document.getElementById('loginError').textContent=err.message;button.disabled=false;}};
     });
@@ -56,4 +56,5 @@
   document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.row,.card')){e.preventDefault();e.target.click();}});
   new MutationObserver(()=>{document.querySelectorAll('.row,.card').forEach(el=>{el.tabIndex=0;el.setAttribute('role','button');});}).observe(document.documentElement,{subtree:true,childList:true});
 })();
+
 
