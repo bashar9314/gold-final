@@ -8,7 +8,7 @@ export const site = {
   name: 'Magnolia Construction Cleaning LLC',
   short: 'Magnolia Construction Cleaning',
   url: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.example.com', // TODO: real domain
-  phone: '(662) 318-4046',
+  phone: '(662) 300-8233',
   email: EMAIL,
   hours: 'Monday – Sunday, 8:00 AM – 8:00 PM',
   serviceArea: 'Olive Branch and surrounding areas within a 40-mile radius',
@@ -72,3 +72,4 @@ export const serve = [
 
 export const propertyTypes = ['Residential', 'Commercial', 'New Construction', 'Renovation / Remodel', 'Other'];
 export const projectTypes = ['Rough Clean', 'Final Clean', 'Post-Construction Clean', 'Move-In Ready', 'Other'];
+
