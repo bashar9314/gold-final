@@ -367,7 +367,7 @@ var STAGES = [
 
 ];
 
-var SEGMENTS = ['General Contractor', 'Home Builder', 'Remodeling Contractor', 'Property Developer', 'Real Estate Professional', 'Homeowner', 'Commercial Property Owner', 'Other'];
+var SEGMENTS = ['Office / Commercial Cleaning', 'Apartment Community', 'Residential Property Manager', 'Residential Cleaning', 'General Contractor', 'Home Builder', 'Remodeling Contractor', 'Property Developer', 'Real Estate Professional', 'Homeowner', 'Commercial Property Owner', 'Other'];
 
 var LOGS = {
   interested: { label: 'Interested', days: 1, stage: 'talking' },
@@ -787,8 +787,14 @@ function leadListHtml() {
 /* Personalised call playbooks. No external service or invented account research. */
 var CALL_MODES=[['first','First call · Find the right project'],['followup','Follow-up · Reopen the opportunity'],['quote','Quote follow-up · Clarify the decision'],['voicemail','Voicemail · Earn a callback']];
 var callDraft={leadId:'',mode:'first',goal:'walk',channel:'call',text:null};
+function serviceCallScript(l,mode,goal){
+ var caller=S.myName||'Bashar',company=l.company||'your property',office=l.segment==='Office / Commercial Cleaning',service=office?'office and commercial cleaning':l.segment==='Residential Cleaning'?'residential cleaning':'rental turnover and common-area cleaning';
+ if(mode==='voicemail')return 'Hi, this is '+caller+' with Magnolia. We provide '+service+' around Olive Branch. Who handles cleaning vendors for '+company+'? Please call '+BIZ.phone+'. Thank you.';
+ return 'OPEN\nHi, this is '+caller+' with Magnolia. '+(mode==='followup'?'I am following up about ':'We provide ')+service+'. Is the person who handles cleaning available for a quick question?\n\nASK\nAre you reviewing cleaning services, or would a backup vendor be useful?\n\nQUALIFY\n'+(office?'Which office areas, restrooms and floors are included? How often do you need service and what access hours work?':'Do you need occupied-home cleaning, vacant-unit turnovers or shared-area cleaning? How many units or areas, and what dates?')+'\nWhat is the approximate size and condition? Who approves vendors and what insurance or onboarding is required?\n\nNEXT STEP\n'+(mode==='quote'&&l.stage==='quote'?'Is there anything about our quote or scope you would like clarified?':'Would a brief walkthrough help us provide an accurate quote?')+'\n\nIF YOU ALREADY HAVE A CLEANER\nUnderstood. Do you keep a backup for schedule gaps or extra work?\n\nIF NOT INTERESTED\nThank you for your time. Record the response and respect requests not to contact again.\n\nAFTER\nRecord the actual outcome and any agreed follow-up date. No cleaning need is confirmed until they tell us.';
+}
 function generateCallScript(l,mode,goal){
  if(outreachBlocked(l))return 'Outreach excluded. Review this lead’s qualification before preparing a call.';
+ if(['Office / Commercial Cleaning','Apartment Community','Residential Property Manager','Residential Cleaning'].includes(l.segment))return serviceCallScript(l,mode,goal);
  var company=l.company||'your company', caller=S.myName||'Bashar', greeting=l.name?'Hi '+firstName(l)+',':'Hi,', builder=l.segment==='Home Builder', referral=l.segment==='Other' && /association/i.test(l.notes||''), quoted=l.stage==='quote';
  var project=builder?'homes approaching completion':'projects approaching turnover';
  var close=goal==='vendor'?'What is the process for getting Magnolia considered as a cleaning vendor? Who handles the paperwork, and what should I send them?':goal==='intro'?'Would a short service overview be useful? What email should I use, and when would be a good time to follow up after you review it?':'If there is a project that fits, would a brief walkthrough be useful so we can confirm scope and provide a quote? What day works for the site contact?';
@@ -858,7 +864,7 @@ function viewDashboard() {
   if(window.magnoliaPreview)h+='<div class="preview-note">Local preview · Saved in this browser only. Cloud sync becomes available after Netlify deployment and sign-in.</div>';
 
   var automation=window.magnoliaAutomation||{},added=S.leads.filter(function(l){return l.sourceType==='automatic'&&l.discoveryDay===t;}).length;
-  h+='<section class="dash-panel"><div class="panel-head"><h2>Daily lead discovery</h2><span class="chip">Target: 15–25 / day</span></div><div class="metric-pair"><div><b>'+added+'</b><span>Actually added today</span></div><div><b>'+S.leads.filter(function(l){return l.sourceType==='automatic';}).length+'</b><span>Automatically sourced prospects</span></div></div><p class="hint">General contractors and home builders · within 40 miles of Olive Branch. '+esc(automation.configured ? (automation.message||'Daily source connected; waiting for first run.') : 'Built-in feed: not configured. Research batches added separately appear in the counts above.')+'</p>'+(automation.date?'<p class="hint">Last run: '+esc(automation.date)+' · '+esc(automation.status||'')+'</p>':'')+'</section>';
+  h+='<section class="dash-panel"><div class="panel-head"><h2>Daily lead discovery</h2><span class="chip">Target: 15–25 / day</span></div><div class="metric-pair"><div><b>'+added+'</b><span>Actually added today</span></div><div><b>'+S.leads.filter(function(l){return l.sourceType==='automatic';}).length+'</b><span>Automatically sourced prospects</span></div></div><p class="hint">Construction, offices, apartment communities and residential properties · within 40 miles of Olive Branch. '+esc(automation.configured ? (automation.message||'Daily source connected; waiting for first run.') : 'Built-in feed: not configured. Research batches added separately appear in the counts above.')+'</p>'+(automation.date?'<p class="hint">Last run: '+esc(automation.date)+' · '+esc(automation.status||'')+'</p>':'')+'</section>';
   h+=qualityDashboard()+'<section class="dash-panel"><h2>Find buying signals</h2><p class="hint">Check current requests, cleaning scope, bid deadlines and vendor requirements before adding an opportunity. These portals do not establish interest in Magnolia.</p><div class="bl"><a class="btn sm" href="https://www.obms.us/1363/Bidding-Opportunities" target="_blank" rel="noopener">Olive Branch bids ↗</a><a class="btn sm" href="https://memphistn.gov/document-category/current-solicitations/" target="_blank" rel="noopener">Memphis solicitations ↗</a><a class="btn sm" href="https://www.memphishabitat.com/homebuying/contractors-new-homes" target="_blank" rel="noopener">Habitat bid room ↗</a></div></section>';
   h+='<div class="stats">'+[[open.length,'Active opportunities'],[quote,'Quotes awaiting a decision'],[won.length,'Won jobs'],[closed?Math.round(won.length/closed*100)+'%':'—','Win rate · closed leads']].map(function(x){return '<div class="stat"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>';}).join('')+'</div><div class="dashboard-grid"><div>';
 
@@ -1489,6 +1495,7 @@ boot();
 </script>
 
 </body></html>
+
 
 
 
