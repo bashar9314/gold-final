@@ -2,7 +2,8 @@
 /* Magnolia simple workspace */
 body{background:#f5f5ee}#view{max-width:1200px;margin:auto;padding:30px 24px 80px}.top-row{max-width:1200px;margin:auto}.tabs{max-width:1200px;margin:auto}.btn,.tab{min-height:44px}.hero h1{font-size:clamp(28px,4vw,42px);line-height:1.15}.hero p{max-width:620px}.simple-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:24px 0}.simple-tile{display:block;text-decoration:none;color:inherit;background:#fff;border:1px solid #dce1d7;border-radius:20px;padding:24px;text-align:left}.simple-tile strong{display:block;font-size:26px;color:#193e30;margin-bottom:8px}.simple-tile span{color:#687367;line-height:1.6}.simple-hero{background:#193e30;color:#fff;border-radius:24px;padding:32px;display:flex;align-items:center;justify-content:space-between;gap:24px}.simple-hero h1{margin:8px 0 12px;font-size:36px}.simple-hero p{color:#d5dfd5;max-width:560px}.simple-hero .btn{background:#f4eddc;color:#193e30}.simple-fold{background:#fff;border:1px solid #dce1d7;border-radius:16px;margin:18px 0;padding:18px}.simple-fold>summary{font-weight:650;cursor:pointer;min-height:30px}.simple-fold[open]>summary{margin-bottom:20px}.simple-pills{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.simple-pills .active{background:#193e30;color:white}.simple-search{width:100%;font-size:17px;padding:16px;border:1px solid #cdd5ca;border-radius:14px}.simple-row{display:grid;grid-template-columns:minmax(190px,2fr) 1fr 1fr auto;gap:20px;align-items:center;padding:22px;background:white;border-bottom:1px solid #e3e7df}.simple-row .lead-open{border:0;background:none;padding:0;text-align:left;color:#173c2d;font:inherit;cursor:pointer}.lead-open b{font-size:17px;display:block}.lead-open small,.simple-row .last small{display:block;color:#6e786f;margin-top:6px}.simple-row .quick{display:flex;gap:8px}.simple-pager{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0}.drawer{width:min(650px,100vw)}.drawer-body>section{margin-bottom:24px}.drawer .logbtns{display:grid;grid-template-columns:1fr 1fr}.drawer .f input,.drawer .f textarea,.drawer .f select{font-size:16px}.drawer .kv{flex-wrap:wrap}.drawer .val{overflow-wrap:anywhere}.simple-fold .filters{display:grid;grid-template-columns:repeat(2,1fr)}.simple-fold .filters>span{display:none}.simple-help{color:#657264;line-height:1.6}.simple-row .stagecell .chip{margin-bottom:6px}
 @media(max-width:700px){#view{padding:20px 14px 100px}.brand span{font-size:11px}.top-row{padding:14px}.simple-grid{grid-template-columns:1fr;gap:10px}.simple-tile{padding:20px}.simple-tile strong{font-size:23px}.simple-hero{display:block;padding:24px}.simple-hero h1{font-size:29px}.simple-row{grid-template-columns:1fr auto;gap:14px;padding:18px}.simple-row .last{grid-column:1}.simple-row .quick{grid-column:2;grid-row:2}.simple-row .stagecell{max-width:130px}.tabs{position:fixed;bottom:0;left:0;right:0;z-index:40;background:#fff;padding:8px 4px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #dce1d7}.tab{font-size:12px;padding:10px 4px}.tab .n{display:none}.drawer{z-index:70}.scrim{z-index:60}.simple-fold .filters{grid-template-columns:1fr}.workspace-footer{padding-bottom:80px}.simple-pills{flex-wrap:nowrap;overflow-x:auto;padding-bottom:5px}.simple-pills .btn{white-space:nowrap}.simple-pager{flex-wrap:wrap}.grid2{grid-template-columns:1fr}}
-</style></head><body>
+</style><style>.growth-panel{margin:0 0 22px;padding:clamp(14px,3vw,24px);border:1px solid #526859;border-radius:16px;background:#192f26}.growth-panel h1,.growth-panel h2{margin:6px 0 12px}.growth-panel .simple-grid{margin:12px 0}.growth-card{min-width:0;padding:16px;border:1px solid #526859;border-radius:12px;background:#203b30}.growth-card p{overflow-wrap:anywhere}.growth-card label{display:flex;align-items:center;gap:8px;margin-top:12px;min-height:44px;cursor:pointer}.growth-card summary{cursor:pointer;color:#e4ca91}.growth-card input{accent-color:#d9bd83}</style>
+</head><body>
 
 <title>Magnolia | Sales Workspace</title>
 
@@ -913,11 +914,59 @@ function viewDashboard() {
 
 /* ---------- shell ---------- */
 
+/* Magnolia growth desk: calendar and device-local content progress. */
+var growthSlots = [
+  [0,'Mon','8:00 AM','Before & after','Film the same angle before and after a clean, with permission.','From renovation dust to a space ready to use. Need a final clean around Olive Branch? Call or text Magnolia at 662-300-8233.','Show one detail you cleaned and ask: What room would you tackle first?'],
+  [2,'Wed','12:00 PM','Quick cleaning tip','Record a short top-to-bottom dusting demo.','After a renovation, dust settles everywhere. Start high and finish with the floors. Need a hand? Call or text Magnolia at 662-300-8233.','Show one overlooked dust spot and ask followers to guess where it is.'],
+  [4,'Fri','5:00 PM','Local service spotlight','Film your supplies or a finished space with permission.','Olive Branch and nearby communities: Magnolia handles residential, commercial and post-construction cleaning. Call or text 662-300-8233 for a quote.','Add a question sticker: Home, office or renovation cleanup?'],
+  [5,'Sat','10:00 AM','First-clean offer','Show the offer card on camera or use it as the post image.','New customers: Get $50 off your first clean of $200 or more. Call or text MAGNOLIA50 to 662-300-8233. One per customer; cannot be combined with other offers.','Show the offer and invite viewers to text MAGNOLIA50.']
+];
+function growthDate(base, offset) {
+  var d = new Date(base+'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate()+offset);
+  return d.toISOString().slice(0,10);
+}
+function growthCalendar(day) {
+  var offset = (new Date(day+'T12:00:00Z').getUTCDay()+6)%7;
+  return growthSlots.map(function(s){return {date:growthDate(day,s[0]-offset),slot:s};});
+}
+function growthSaved(date) {
+  try {return localStorage.getItem('magnolia.content.'+date)==='posted';} catch (_) {return false;}
+}
+function growthToday() {
+  var day=today(), due=S.leads.filter(function(l){return isOpen(l)&&l.followUp&&l.followUp<=day;}).length;
+  var quotes=S.leads.filter(function(l){return l.stage==='quote';}).length;
+  var slot=growthCalendar(day).find(function(x){return x.date===day;});
+  var focus=['Follow up with a builder about their next handoff.','Ask a property manager about upcoming move-outs.','Check in with a local office about cleaning needs.','Reconnect with a past customer about another clean.','Review open quotes and confirm next steps.','Hand out cards near an active job where permitted.','Review which outreach brought in real inquiries.'];
+  var dayIndex=(new Date(day+'T12:00:00Z').getUTCDay()+6)%7;
+  return '<section class="growth-panel"><div class="eyebrow">Daily growth desk · '+esc(day)+'</div><h2>Today’s priorities</h2><div class="simple-grid">'+
+    '<button class="simple-tile" data-act="tab" data-t="today"><strong>'+due+' follow-ups due</strong><span>Work through overdue and due-today contacts.</span></button>'+
+    '<a class="simple-tile" href="/quote"><strong>'+quotes+' leads at quote stage</strong><span>Open Quote Studio.</span></a>'+
+    '<button class="simple-tile" data-act="tab" data-t="content"><strong>'+(slot?esc(slot.slot[3])+' · '+esc(slot.slot[2])+' CT':'Prep your next post')+'</strong><span>Open Posts & Stories.</span></button></div>'+
+    '<p><strong>Growth move:</strong> '+esc(focus[dayIndex])+'</p></section>';
+}
+function growthContent() {
+  var day=today(), week=growthCalendar(day), done=week.filter(function(x){return growthSaved(x.date);}).length;
+  return '<section class="growth-panel"><div class="eyebrow">Marketing calendar · Central time</div><h1>Posts &amp; Stories</h1><p>'+done+' of 4 marked posted this week. Progress is saved on this device. Publishing stays manual.</p><div class="simple-grid">'+
+    week.map(function(x){var s=x.slot;return '<article class="growth-card"><div class="eyebrow">'+esc(s[1]+' '+x.date.slice(5)+' · '+s[2])+(x.date===day?' · Today':'')+'</div><h2>'+esc(s[3])+'</h2><p><strong>Film:</strong> '+esc(s[4])+'</p><details><summary>Caption &amp; story draft</summary><p>'+esc(s[5])+'</p><p><strong>Story:</strong> '+esc(s[6])+'</p></details><label><input type="checkbox" data-growth-posted="'+esc(x.date)+'" '+(growthSaved(x.date)?'checked':'')+'> Mark posted</label></article>';}).join('')+'</div></section>';
+}
+document.addEventListener('change',function(e){
+  var date=e.target.getAttribute('data-growth-posted');
+  if(!date || !growthCalendar(today()).some(function(x){return x.date===date;}))return;
+  try {
+    if(e.target.checked)localStorage.setItem('magnolia.content.'+date,'posted');
+    else localStorage.removeItem('magnolia.content.'+date);
+  } catch (_) { e.target.checked=!e.target.checked; toast('This browser cannot save posting progress.'); return; }
+  var expanded=Array.from(document.querySelectorAll('.growth-card details')).map(function(d){return d.open;});
+  renderView(true);
+  document.querySelectorAll('.growth-card details').forEach(function(d,i){d.open=expanded[i];});
+  document.querySelector('[data-growth-posted="'+date+'"]').focus();
+});
 function renderTop() {
 
   var od = overdueCount();
 
-  var tabs = [['dashboard', 'Home', 0], ['today', 'Follow-ups', od], ['leads', 'Leads', 0], ['docs', 'Documents', 0]];
+  var tabs = [['dashboard', 'Home', 0], ['today', 'Follow-ups', od], ['leads', 'Leads', 0], ['docs', 'Documents', 0], ['content', 'Posts & Stories', 0]];
 
   $('#tabs').innerHTML = tabs.map(function (t) {
 
@@ -941,8 +990,9 @@ function renderView(full) {
 
   var banner = S.canWrite ? '' : '<div class="banner">You have view-only access. Ask the owner to share this page with you as a Contributor to edit.</div>';
 
-  if (S.tab === 'dashboard') v.innerHTML = banner + viewDashboard();
+  if (S.tab === 'dashboard') v.innerHTML = banner + growthToday() + viewDashboard();
 
+  else if (S.tab === 'content') v.innerHTML = banner + growthContent();
   else if (S.tab === 'docs') v.innerHTML = banner + simpleDocs();
   else if (S.tab === 'today') v.innerHTML = banner + viewToday();
 
