@@ -6,7 +6,9 @@ body{background:#f5f5ee}#view{max-width:1200px;margin:auto;padding:30px 24px 80p
 <style>
 .fm{color:#edf5ee}.fm-head,.fm-bar,.fm-key{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}.fm h1,.fm h2{margin:4px 0}.fm-head{margin-bottom:16px}.fm-head>strong{border:1px solid #678e78;border-radius:22px;padding:8px 14px}.fm-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(240px,1fr);gap:14px}.fm-board,.fm-detail{background:#142e24;border:1px solid #486c58;padding:14px;border-radius:14px;min-width:0}.fm-bar{margin-bottom:10px}.fm select,.fm input,.fm textarea,.fm-controls button{font:inherit;color:#eef6ee;background:#254638;border:1px solid #789587;border-radius:7px;padding:7px;max-width:100%}.fm-detail form label,.fm-detail form small{display:block;margin:10px 0}.fm-detail form input,.fm-detail form select,.fm-detail form textarea{display:block;width:100%;margin-top:5px}.fm-detail textarea{min-height:72px}.fm-detail details{border-top:1px solid #486c58;padding:9px 0}.fm-detail li{margin:4px 0}.fm-map{width:100%;max-height:580px;display:block;background:#0c211a;border-radius:8px}.fm-zone{cursor:pointer}.fm-zone path{fill:#325346;stroke:#a4bbab;stroke-width:.65;vector-effect:non-scaling-stroke}.fm-zone.planned path{fill:#835e25}.fm-zone.active path{fill:#285d90}.fm-zone.done path{fill:#237746}.fm-zone:hover path,.fm-zone:focus path,.fm-zone.selected path{stroke:#ffe6a0;stroke-width:2}.fm-zone text{fill:#fff;font-size:10px;font-weight:700;text-anchor:middle;paint-order:stroke;stroke:#16291f;stroke-width:2px;pointer-events:none}.fm-dot{pointer-events:none;stroke:#13281e;stroke-width:1.2}.fm-dot.apartment{fill:#75e6eb}.fm-dot.home{fill:#ffc975}.fm-dot.contractor{fill:#f2a2e8}.fm-key{justify-content:flex-start;margin:12px 0}.fm-key span:before{content:'●';margin-right:4px}.fm-key .planned:before,.fm-key .home:before{color:#ffc975}.fm-key .active:before{color:#82b7ff}.fm-key .done:before{color:#77dd98}.fm-key .apartment:before{color:#75e6eb}.fm-key .contractor:before{color:#f2a2e8}.fm small{color:#c5d6c8}.fm a{color:#c8edcf}@media(max-width:730px){.fm-layout{grid-template-columns:1fr}.fm-bar{justify-content:flex-start}.fm-board,.fm-detail{padding:10px}.fm-map{min-height:300px}}
 </style>
-</head><body>
+<style>
+.fm-home{margin-bottom:14px}.fm-home .btn{background:#1d4938;color:#f4f8f0;border:1px solid #668c75;font-weight:750}.fm{color:#f0f8f1}.fm-head{padding:20px;border:1px solid #4e755f;border-radius:18px;background:linear-gradient(135deg,#22523d,#102a21)}.fm-head p{margin:6px 0 0}.fm-head h1{font-size:clamp(28px,4vw,45px)}.fm-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}.fm-metrics>div,.fm-next{padding:14px;border:1px solid #4e755f;border-radius:14px;background:#1a382b}.fm-metrics b{display:block;font-size:clamp(22px,4vw,35px);line-height:1.1;color:#f4d795}.fm-metrics span{display:block;margin-top:4px;font-size:13px}.fm-metrics progress{height:5px;width:100%;accent-color:#a5e1ac}.fm-next{margin-bottom:14px}.fm-next h2{font-size:20px}.fm-rec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:11px}.fm-rec button,.fm-layers button{border:1px solid #698e7b;background:#254c3c;color:#f4fbf5;border-radius:10px;padding:9px;text-align:left;min-height:44px;cursor:pointer}.fm-rec button:hover,.fm-layers button[aria-pressed=true]{background:#d9efdc;color:#163227}.fm-rec strong,.fm-rec span{display:block}.fm-rec span{font-size:12px;margin-top:4px}.fm-layers{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.fm-layers button{border-radius:20px;text-align:center}.fm-bar form{max-width:100%}.fm-bar form>div{display:flex;gap:6px}.fm-bar label,.fm-bar form small{display:block;margin:2px 0}.fm-map.zoomed{touch-action:none;cursor:grab}.fm-map.zoomed:active{cursor:grabbing}.fm-directions{display:inline-flex;margin:8px 0;color:#edf7ee}.fm-city{margin:0}.fm-detail{scroll-margin-top:12px}@media(max-width:730px){.fm-rec{grid-template-columns:repeat(2,minmax(0,1fr))}.fm-metrics{gap:5px}.fm-metrics>div{padding:8px}.fm-metrics span{font-size:11px}}
+</style></head><body>
 
 <title>Magnolia | Sales Workspace</title>
 
@@ -937,22 +939,42 @@ function flyerGroups(){
   });
   return {groups:groups,missing:missing};
 }
+var flyerCities={'38654':'Olive Branch','38671':'Southaven','38672':'Southaven','38637':'Horn Lake','38632':'Hernando','38680':'Walls','38651':'Nesbit','38611':'Byhalia','38017':'Collierville','38138':'Germantown','38139':'Germantown','38103':'Downtown Memphis','38116':'Whitehaven','38119':'East Memphis','38125':'Southeast Memphis','38133':'Bartlett area','38016':'Cordova','38018':'Cordova'};
+function flyerPriority(g){
+  return Object.keys(flyerShapes).map(function(z){
+    var group=g.groups[z]||{}, status=flyerRecords[z]?.flyerStatus||'unvisited';
+    var n=Object.keys(flyerKinds).reduce(function(total,k){return total+((flyerLayer==='all'||flyerLayer===k)?(group[k]?.length||0):0);},0);
+    return {z:z,n:n,status:status};
+  }).filter(function(x){return x.status!=='done'&&(x.n||x.status==='active'||x.status==='planned');}).sort(function(a,b){
+    var rank={active:2,planned:1,unvisited:0};
+    return rank[b.status]-rank[a.status]||b.n-a.n||a.z.localeCompare(b.z);
+  }).slice(0,4);
+}
+function flyerMapBox(){
+  var c=flyerShapes[flyerSelected],w=857/flyerZoom,h=796/flyerZoom;
+  return flyerZoom===1?[0,0,857,796]:[Math.max(0,Math.min(857-w,c[1]-w/2+flyerPan[0])),Math.max(0,Math.min(796-h,c[2]-h/2+flyerPan[1])),w,h];
+}
 function flyerRender(){
   var g=flyerGroups(), a=g.groups[flyerSelected]||{}, record=flyerRecords[flyerSelected]||{};
   var done=Object.keys(flyerShapes).filter(function(z){return flyerRecords[z]?.flyerStatus==='done';}).length;
-  var center=flyerShapes[flyerSelected], w=857/flyerZoom, h=796/flyerZoom;
-  var x=flyerZoom===1?0:center[1]-w/2+flyerPan[0], y=flyerZoom===1?0:center[2]-h/2+flyerPan[1];
+  var box=flyerMapBox(), priorities=flyerPriority(g);
+  var total=Object.keys(flyerShapes).length, underway=Object.values(flyerRecords).filter(function(r){return ['active','planned'].includes(r.flyerStatus);}).length;
+  var delivered=Object.values(flyerRecords).reduce(function(n,r){return n+(Number(r.flyerCount)||0);},0);
+  var city=flyerCities[flyerSelected]||'', mapURL='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent([city,flyerSelected,'USA'].filter(Boolean).join(' '));
   var paths=Object.entries(flyerShapes).map(function(entry){
     var z=entry[0], p=entry[1], status=flyerRecords[z]?.flyerStatus||'unvisited', group=g.groups[z]||{};
     var kinds=Object.keys(flyerKinds).filter(function(k){return (flyerLayer==='all'||flyerLayer===k)&&group[k]?.length;});
     return '<g class="fm-zone '+status+(z===flyerSelected?' selected':'')+'" data-flyer-zip="'+z+'" role="button" tabindex="0" aria-label="ZIP '+z+' '+flyerStates[status]+'"><title>'+z+' · '+flyerStates[status]+'</title><path d="'+p[0]+'" fill-rule="evenodd"/><text x="'+p[1]+'" y="'+p[2]+'">'+z+'</text>'+kinds.map(function(k,i){return '<circle class="fm-dot '+k+'" cx="'+(p[1]+(i-(kinds.length-1)/2)*10)+'" cy="'+(p[2]+10)+'" r="4"/>';}).join('')+'</g>';
   }).join('');
-  return '<section class="fm"><header class="fm-head"><div><div class="eyebrow">Magnolia field marketing</div><h1>Flyer Coverage Map</h1><p>Choose a ZIP, see where to focus, and save what your team covered.</p></div><strong>'+done+' / '+Object.keys(flyerShapes).length+' ZIPs done</strong></header>'+
-  '<div class="fm-layout"><div class="fm-board"><div class="fm-bar"><label>Find ZIP <select id="flyerZip">'+Object.keys(flyerShapes).sort().map(function(z){return '<option '+(z===flyerSelected?'selected ':'')+'value="'+z+'">'+z+(z==='38654'?' · Olive Branch':'')+'</option>';}).join('')+'</select></label><label>Show <select id="flyerLayer">'+[['all','All layers'],...Object.entries(flyerKinds)].map(function(k){return '<option value="'+k[0]+'" '+(flyerLayer===k[0]?'selected':'')+'>'+k[1]+'</option>';}).join('')+'</select></label><div class="fm-controls"><button data-flyer-view="in" aria-label="Zoom in">+</button><button data-flyer-view="out" aria-label="Zoom out">−</button><button data-flyer-view="reset">Reset view</button></div></div>'+
-  '<svg class="fm-map" viewBox="'+[x,y,w,h].join(' ')+'" aria-label="Interactive ZIP coverage map">'+paths+'</svg>'+
+  return '<section class="fm"><header class="fm-head"><div><div class="eyebrow">MAGNOLIA / FIELD MARKETING</div><h1>Flyer Map</h1><p>Pick an area, work your route, and log what you covered.</p></div></header>'+
+  '<div class="fm-metrics"><div><b>'+done+'<small> / '+total+'</small></b><span>ZIPs completed</span><progress max="'+total+'" value="'+done+'"></progress></div><div><b>'+underway+'</b><span>Planned or in progress</span></div><div><b>'+delivered.toLocaleString('en-US')+'</b><span>Flyers logged</span></div></div>'+
+  '<div class="fm-next"><div><h2>Where to go next</h2><small>Unfinished routes first, then ZIPs with the most mapped targets in your selected layer.</small></div><div class="fm-rec">'+(priorities.length?priorities.map(function(r){return '<button type="button" data-flyer-jump="'+r.z+'"><strong>'+esc(flyerCities[r.z]||'ZIP '+r.z)+'</strong><span>'+r.z+' · '+r.n+' targets · '+flyerStates[r.status]+'</span></button>';}).join(''):'<p>Select a ZIP and mark it Planned to start your route list.</p>')+'</div></div>'+
+  '<div class="fm-layout"><div class="fm-board"><div class="fm-bar"><form id="flyerSearch"><label for="flyerQuery">Find an area</label><div><input id="flyerQuery" type="search" maxlength="40" placeholder="ZIP or city" required><button class="btn">Go</button></div><small id="flyerSearchStatus" aria-live="polite"></small></form><div class="fm-controls"><button data-flyer-view="in" aria-label="Zoom in">+</button><button data-flyer-view="out" aria-label="Zoom out">−</button><button data-flyer-view="reset">Reset</button></div></div>'+
+  '<div class="fm-layers" role="group" aria-label="Prospect layers">'+[['all','All targets'],...Object.entries(flyerKinds)].map(function(k){return '<button type="button" data-flyer-layer="'+k[0]+'" aria-pressed="'+(flyerLayer===k[0])+'">'+k[1]+'</button>';}).join('')+'</div>'+
+  '<svg class="fm-map'+(flyerZoom>1?' zoomed':'')+'" viewBox="'+box.join(' ')+'" aria-label="Interactive ZIP coverage map">'+paths+'</svg>'+
   '<div class="fm-key">'+Object.entries(flyerStates).map(function(s){return '<span class="'+s[0]+'">'+s[1]+'</span>';}).join('')+'<span class="apartment">Apartments</span><span class="home">Homes</span><span class="contractor">Contractors</span></div>'+
   '<small>ZIP shapes approximate postal areas. Markers summarize workspace records by ZIP, not exact addresses. '+g.missing+' relevant records lack a ZIP on this map. <a href="https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Current/MapServer/2" target="_blank" rel="noopener">U.S. Census boundaries</a></small></div>'+
-  '<aside class="fm-detail"><div class="eyebrow">Selected area</div><h2>ZIP '+flyerSelected+'</h2><form id="flyerForm"><label>Coverage status<select name="flyerStatus">'+Object.entries(flyerStates).map(function(s){return '<option value="'+s[0]+'" '+((record.flyerStatus||'unvisited')===s[0]?'selected':'')+'>'+s[1]+'</option>';}).join('')+'</select></label><label>Flyers distributed <input name="flyerCount" type="number" min="0" max="100000" value="'+(Number(record.flyerCount)||0)+'"></label><label>Route notes <textarea name="flyerNotes" maxlength="500" placeholder="Streets covered, places to revisit, or permission needed">'+esc(record.flyerNotes||'')+'</textarea></label><button class="btn primary" '+(flyerPending||!S.canWrite?'disabled':'')+'>'+ (flyerPending?'Saving…':'Save coverage')+'</button><small>'+ (record.flyerAt?'Last saved '+esc(record.flyerAt.slice(0,10)):'No coverage saved yet')+'</small></form><h3>Workspace targets</h3>'+
+  '<aside class="fm-detail"><div class="eyebrow">Selected area</div><h2>ZIP '+flyerSelected+'</h2>'+(city?'<p class="fm-city">'+esc(city)+'</p>':'')+'<a class="btn fm-directions" href="'+esc(mapURL)+'" target="_blank" rel="noopener">Open street map ↗</a><form id="flyerForm"><label>Coverage status<select name="flyerStatus">'+Object.entries(flyerStates).map(function(s){return '<option value="'+s[0]+'" '+((record.flyerStatus||'unvisited')===s[0]?'selected':'')+'>'+s[1]+'</option>';}).join('')+'</select></label><label>Flyers distributed <input name="flyerCount" type="number" min="0" max="100000" value="'+(Number(record.flyerCount)||0)+'"></label><label>Route notes <textarea name="flyerNotes" maxlength="500" placeholder="Streets covered, places to revisit, or permission needed">'+esc(record.flyerNotes||'')+'</textarea></label><button class="btn primary" '+(flyerPending||!S.canWrite?'disabled':'')+'>'+ (flyerPending?'Saving…':'Save coverage')+'</button><small>'+ (record.flyerAt?'Last saved '+esc(record.flyerAt.slice(0,10)):'No coverage saved yet')+'</small></form><h3>Workspace targets</h3>'+
   Object.entries(flyerKinds).filter(function(k){return flyerLayer==='all'||k[0]===flyerLayer;}).map(function(k){
     var items=a[k[0]]||[];
     return '<details><summary>'+k[1]+' · '+items.length+'</summary>'+ (items.length?'<ul>'+items.map(function(l){return '<li><button class="btn" data-act="open" data-id="'+esc(l.id)+'">'+esc(l.company||l.name||'Workspace lead')+'</button></li>';}).join('')+'</ul>':'<p>No mapped workspace records.</p>')+'</details>';
@@ -961,7 +983,10 @@ function flyerRender(){
 function flyerPick(zip){if(!flyerShapes[zip]||flyerPending)return;flyerSelected=zip;flyerPan=[0,0];renderView(true);}
 document.addEventListener('click',function(e){
   var zone=e.target.closest('[data-flyer-zip]'), b=e.target.closest('[data-flyer-view]');
-  if(zone)flyerPick(zone.dataset.flyerZip);
+  var jump=e.target.closest('[data-flyer-jump]'), layer=e.target.closest('[data-flyer-layer]');
+  if(zone && Date.now()>flyerNoClick)flyerPick(zone.dataset.flyerZip);
+  if(jump&&!flyerPending){flyerZoom=2;flyerPick(jump.dataset.flyerJump);if(matchMedia('(max-width:730px)').matches)document.querySelector('.fm-detail')?.scrollIntoView({block:'start'});}
+  if(layer&&!flyerPending){flyerLayer=layer.dataset.flyerLayer;renderView(true);document.querySelector('[data-flyer-layer="'+flyerLayer+'"]')?.focus();}
   if(b&&!flyerPending){flyerZoom=b.dataset.flyerView==='reset'?1:Math.max(1,Math.min(4,flyerZoom+(b.dataset.flyerView==='in'?1:-1)));flyerPan=[0,0];renderView(true);}
 });
 document.addEventListener('keydown',function(e){var z=e.target.closest('[data-flyer-zip]');if(z&&['Enter',' '].includes(e.key)){e.preventDefault();flyerPick(z.dataset.flyerZip);document.querySelector('[data-flyer-zip="'+flyerSelected+'"]')?.focus();}});
@@ -970,6 +995,12 @@ document.addEventListener('change',function(e){
   if(e.target.id==='flyerLayer'&&!flyerPending){flyerLayer=e.target.value;renderView(true);document.getElementById('flyerLayer')?.focus();}
 });
 document.addEventListener('submit',function(e){
+  if(e.target.id==='flyerSearch'){
+    e.preventDefault();var q=document.getElementById('flyerQuery').value.trim().toLowerCase();
+    var z=Object.hasOwn(flyerShapes,q)?q:Object.keys(flyerCities).find(function(k){return q&&flyerShapes[k]&&flyerCities[k].toLowerCase().includes(q);});
+    if(z&&!flyerPending){flyerZoom=2;flyerPick(z);}else document.getElementById('flyerSearchStatus').textContent='No matching ZIP or city on this map.';
+    return;
+  }
   if(e.target.id!=='flyerForm')return;
   e.preventDefault();if(flyerPending||!S.canWrite)return;
   var f=new FormData(e.target), zip=flyerSelected, status=f.get('flyerStatus'), count=Number(f.get('flyerCount')), old=flyerRecords[zip];
@@ -980,6 +1011,21 @@ document.addEventListener('submit',function(e){
   (old?db.doc('templates/'+old.id).update(data):db.collection('templates').add(data)).then(function(){flyerPending=false;renderView(true);toast('ZIP '+zip+' coverage saved');}).catch(function(err){flyerPending=false;btn.disabled=false;btn.textContent='Save coverage';fail(err);});
 });
 
+var flyerDrag=null,flyerNoClick=0;
+document.addEventListener('pointerdown',function(e){
+  var svg=e.target.closest('.fm-map');if(!svg||flyerZoom===1||e.button!==0)return;
+  flyerDrag={svg:svg,x:e.clientX,y:e.clientY,px:flyerPan[0],py:flyerPan[1],id:e.pointerId};
+});
+document.addEventListener('pointermove',function(e){
+  var d=flyerDrag;if(!d||d.id!==e.pointerId||!d.svg.isConnected)return;
+  var dx=e.clientX-d.x,dy=e.clientY-d.y;
+  if(!d.moved&&Math.hypot(dx,dy)<6)return;
+  if(!d.moved){d.moved=true;d.svg.setPointerCapture(e.pointerId);}
+  var b=d.svg.getBoundingClientRect(),scale=Math.max(857/flyerZoom/b.width,796/flyerZoom/b.height);
+  flyerPan=[d.px-dx*scale,d.py-dy*scale];
+  d.svg.setAttribute('viewBox',flyerMapBox().join(' '));
+});
+['pointerup','pointercancel'].forEach(function(type){document.addEventListener(type,function(e){if(flyerDrag?.id===e.pointerId){if(flyerDrag.moved)flyerNoClick=Date.now()+350;flyerDrag=null;}});});
 function renderTop() {
 
   var od = overdueCount();
@@ -1008,9 +1054,9 @@ function renderView(full) {
 
   var banner = S.canWrite ? '' : '<div class="banner">You have view-only access. Ask the owner to share this page with you as a Contributor to edit.</div>';
 
-  if (S.tab === 'dashboard') v.innerHTML = banner + viewDashboard();
+  if (S.tab === 'dashboard') v.innerHTML = banner + '<div class="fm-home"><button class="btn" data-act="tab" data-t="flyers">Open Flyer Map →</button></div>' + viewDashboard();
 
-  else if (S.tab === 'flyers') { if (full || !v.querySelector('#flyerForm') || (!flyerPending && !v.querySelector('#flyerForm:focus-within'))) v.innerHTML = banner + flyerRender(); }
+  else if (S.tab === 'flyers') { if (full || !v.querySelector('#flyerForm') || (!flyerPending && !flyerDrag && !v.querySelector('#flyerForm:focus-within, #flyerSearch:focus-within, .fm-detail details[open]'))) v.innerHTML = banner + flyerRender(); }
   else if (S.tab === 'docs') v.innerHTML = banner + simpleDocs();
   else if (S.tab === 'today') v.innerHTML = banner + viewToday();
 
